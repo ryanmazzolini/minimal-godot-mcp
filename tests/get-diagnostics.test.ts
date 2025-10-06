@@ -2,6 +2,12 @@ import { describe, it, beforeEach, mock } from 'node:test';
 import assert from 'node:assert';
 import { getDiagnostics } from '../src/tools/get-diagnostics.js';
 import { LSPClient } from '../src/lsp-client.js';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const TEST_FILE = join(__dirname, 'fixtures', 'test-script.gd');
 
 describe('get_diagnostics tool', () => {
   let mockLspClient: LSPClient;
@@ -9,29 +15,30 @@ describe('get_diagnostics tool', () => {
   beforeEach(() => {
     mockLspClient = {
       getDiagnostics: mock.fn((path: string) => {
-        if (path === '/project/script.gd') {
+        if (path === TEST_FILE) {
           return [{ line: 5, column: 10, severity: 'error', message: 'Syntax error' }];
         }
         return [];
       }),
       getAllDiagnostics: mock.fn(() => ({
-        '/project/script.gd': [
+        [TEST_FILE]: [
           { line: 5, column: 10, severity: 'error', message: 'Syntax error' },
         ],
         '/project/player.gd': [
           { line: 20, column: 5, severity: 'warning', message: 'Unused variable' },
         ],
       })),
+      openFile: mock.fn(),
     } as unknown as LSPClient;
   });
 
   it('should return diagnostics for specific file', async () => {
     const result = await getDiagnostics(mockLspClient, true, {
-      file_path: '/project/script.gd',
+      file_path: TEST_FILE,
     });
 
     assert.deepStrictEqual(result.diagnostics, {
-      '/project/script.gd': [
+      [TEST_FILE]: [
         { line: 5, column: 10, severity: 'error', message: 'Syntax error' },
       ],
     });
@@ -42,7 +49,7 @@ describe('get_diagnostics tool', () => {
     const result = await getDiagnostics(mockLspClient, true, {});
 
     assert.deepStrictEqual(result.diagnostics, {
-      '/project/script.gd': [
+      [TEST_FILE]: [
         { line: 5, column: 10, severity: 'error', message: 'Syntax error' },
       ],
       '/project/player.gd': [
@@ -53,7 +60,7 @@ describe('get_diagnostics tool', () => {
 
   it('should return error when LSP not connected', async () => {
     const result = await getDiagnostics(mockLspClient, false, {
-      file_path: '/project/script.gd',
+      file_path: TEST_FILE,
     });
 
     assert.deepStrictEqual(result.diagnostics, {});
@@ -69,7 +76,7 @@ describe('get_diagnostics tool', () => {
 
   it('should accept .gd files', async () => {
     const result = await getDiagnostics(mockLspClient, true, {
-      file_path: '/project/script.gd',
+      file_path: TEST_FILE,
     });
 
     assert.strictEqual(result.error, undefined);
