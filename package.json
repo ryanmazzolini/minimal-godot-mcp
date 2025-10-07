@@ -29,7 +29,8 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4"
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "fast-glob": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

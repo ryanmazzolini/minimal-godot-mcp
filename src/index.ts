@@ -7,11 +7,16 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { LSPClient } from './lsp-client.js';
+import { DiagnosticsManager } from './diagnostics-manager.js';
 import {
   getDiagnostics,
   getDiagnosticsTool,
   GetDiagnosticsInput,
 } from './tools/get-diagnostics.js';
+import {
+  scanWorkspaceDiagnostics,
+  scanWorkspaceDiagnosticsTool,
+} from './tools/scan-workspace-diagnostics.js';
 
 /**
  * Main MCP server
@@ -19,7 +24,14 @@ import {
 async function main(): Promise<void> {
   // Initialize LSP client (don't connect yet)
   const lspClient = new LSPClient();
+  const diagnosticsManager = new DiagnosticsManager(lspClient);
   let isConnected = false;
+
+  // Set workspace path if provided
+  const workspacePath = process.env.GODOT_WORKSPACE_PATH;
+  if (workspacePath) {
+    diagnosticsManager.setWorkspace(workspacePath);
+  }
 
   // Try to connect to Godot LSP (non-blocking)
   try {
@@ -46,7 +58,7 @@ async function main(): Promise<void> {
 
   // Register tool list handler
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [getDiagnosticsTool],
+    tools: [getDiagnosticsTool, scanWorkspaceDiagnosticsTool],
   }));
 
   // Register tool call handler
@@ -55,7 +67,20 @@ async function main(): Promise<void> {
 
     if (name === 'get_diagnostics') {
       const input = args as unknown as GetDiagnosticsInput;
-      const result = await getDiagnostics(lspClient, isConnected, input);
+      const result = await getDiagnostics(diagnosticsManager, isConnected, input);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'scan_workspace_diagnostics') {
+      const result = await scanWorkspaceDiagnostics(diagnosticsManager, isConnected);
 
       return {
         content: [

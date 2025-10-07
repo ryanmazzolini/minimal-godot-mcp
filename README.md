@@ -92,21 +92,20 @@ Restart Claude Code after modifying the config.
 3. Edit GDScript files with your MCP client enabled
 4. Receive instant syntax error feedback
 
-### MCP Tool: `get_diagnostics`
+### MCP Tools
 
-**Get diagnostics for a specific file:**
+#### `get_diagnostics`
+
+Fast single-file diagnostic check (<1s).
+
+**Input:**
 ```json
 {
   "file_path": "/absolute/path/to/script.gd"
 }
 ```
 
-**Get diagnostics for all files** (useful for cross-file errors):
-```json
-{}
-```
-
-**Output format:**
+**Output:**
 ```json
 {
   "diagnostics": {
@@ -118,8 +117,31 @@ Restart Claude Code after modifying the config.
         "message": "Expected identifier after '.'",
         "code": "GD0001"
       }
-    ],
-    "/path/to/file2.gd": []
+    ]
+  }
+}
+```
+
+#### `scan_workspace_diagnostics`
+
+⚠️ **EXPENSIVE** operation - scans ALL `.gd` files in workspace (5-30s for 100+ files).
+
+Use sparingly for workspace-wide error checking. Requires `GODOT_WORKSPACE_PATH` environment variable.
+
+**Input:**
+```json
+{}
+```
+
+**Output:**
+```json
+{
+  "files_scanned": 150,
+  "files_with_issues": 3,
+  "scan_time_seconds": 12.45,
+  "diagnostics": {
+    "/path/to/file1.gd": [...],
+    "/path/to/file2.gd": [...]
   }
 }
 ```

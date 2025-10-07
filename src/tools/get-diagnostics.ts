@@ -1,4 +1,4 @@
-import { LSPClient } from '../lsp-client.js';
+import { DiagnosticsManager } from '../diagnostics-manager.js';
 import { Diagnostic } from '../types.js';
 
 export interface GetDiagnosticsInput {
@@ -11,17 +11,21 @@ export interface GetDiagnosticsOutput {
 }
 
 /**
- * Get diagnostics for a GDScript file (or all files if path not provided)
+ * Get diagnostics for a specific GDScript file
  */
 export async function getDiagnostics(
-  lspClient: LSPClient,
+  diagnosticsManager: DiagnosticsManager,
   isConnected: boolean,
   input: GetDiagnosticsInput
 ): Promise<GetDiagnosticsOutput> {
   const { file_path } = input;
 
-  // Validate input if file_path provided
-  if (file_path && !file_path.endsWith('.gd')) {
+  // Validate input
+  if (!file_path) {
+    throw new Error('file_path is required. Use scan_workspace_diagnostics for workspace-wide checks.');
+  }
+
+  if (!file_path.endsWith('.gd')) {
     throw new Error('file_path must be a .gd file');
   }
 
@@ -41,22 +45,9 @@ Once Godot is running, diagnostics will be available automatically.`,
     };
   }
 
-  // Get diagnostics - specific file or all files
-  if (file_path) {
-    // Read file content and request diagnostics from LSP
-    try {
-      const fs = await import('fs/promises');
-      const fileContent = await fs.readFile(file_path, 'utf-8');
-      await lspClient.openFile(file_path, fileContent);
-    } catch (error) {
-      throw new Error(`Failed to read file: ${(error as Error).message}`);
-    }
-
-    const fileDiagnostics = lspClient.getDiagnostics(file_path);
-    return { diagnostics: { [file_path]: fileDiagnostics } };
-  }
-
-  return { diagnostics: lspClient.getAllDiagnostics() };
+  // Get diagnostics for specific file
+  const fileDiagnostics = await diagnosticsManager.getFileDiagnostics(file_path);
+  return { diagnostics: { [file_path]: fileDiagnostics } };
 }
 
 /**
@@ -65,15 +56,15 @@ Once Godot is running, diagnostics will be available automatically.`,
 export const getDiagnosticsTool = {
   name: 'get_diagnostics',
   description:
-    'Get syntax diagnostics from Godot LSP for GDScript files. IMPORTANT: You must provide file_path to check a specific file. Without file_path, only returns cached diagnostics from previously checked files (useful for batch operations).',
+    'Get syntax diagnostics from Godot LSP for a specific GDScript file. Fast operation (<1s). Use this for single file checks. For workspace-wide scanning, use scan_workspace_diagnostics instead.',
   inputSchema: {
     type: 'object',
     properties: {
       file_path: {
         type: 'string',
-        description: 'Absolute path to the .gd file to check for syntax errors. Required for first-time checks.',
+        description: 'Absolute path to the .gd file to check for syntax errors.',
       },
     },
-    required: [],
+    required: ['file_path'],
   },
 };
