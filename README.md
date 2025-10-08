@@ -17,6 +17,10 @@ A lightweight bridge between MCP clients and Godot's built-in Language Server Pr
 - **Low context overhead**: Lightweight tool responses to minimize token usage
 - **Plays nice**: Compatible with existing tools like godot-vscode-plugin
 
+See the context use according to claude-code `/context`:
+
+![context-use](docs/context-use.png)
+
 ### Differentiators
 
 | Feature | godot-server-mcp | ee0pdt/Godot-MCP | Coding-Solo/godot-mcp |
