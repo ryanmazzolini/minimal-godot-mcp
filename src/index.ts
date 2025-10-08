@@ -126,10 +126,13 @@ async function main(): Promise<void> {
   console.error('Godot MCP server running');
 
   // Cleanup on exit
-  process.on('SIGINT', () => {
+  const cleanup = () => {
     lspClient.disconnect();
     process.exit(0);
-  });
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 }
 
 main().catch((error) => {
