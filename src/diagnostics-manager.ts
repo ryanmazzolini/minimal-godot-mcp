@@ -9,7 +9,20 @@ import { Diagnostic } from './types.js';
 export class DiagnosticsManager {
   private workspacePath: string | null = null;
 
-  constructor(private lspClient: LSPClient) {}
+  constructor(private lspClient: LSPClient) {
+    // Listen for workspace changes from Godot
+    lspClient.on('workspaceChange', (params: unknown) => {
+      const oldPath = this.workspacePath;
+      if (params && typeof params === 'object' && 'path' in params) {
+        this.workspacePath = params.path as string;
+        if (oldPath !== this.workspacePath) {
+          console.error(`[DiagnosticsManager] Workspace changed: ${oldPath || '(none)'} -> ${this.workspacePath}`);
+        }
+      } else {
+        console.error(`[DiagnosticsManager] Invalid workspace change params:`, params);
+      }
+    });
+  }
 
   /**
    * Set workspace path (from gdscript_client/changeWorkspace)
@@ -35,6 +48,8 @@ export class DiagnosticsManager {
       throw new Error('Workspace path not set. Ensure Godot is running with a project open.');
     }
 
+    console.error(`[SCAN] Workspace path: ${this.workspacePath}`);
+
     // Find all .gd files
     const files = await fg('**/*.gd', {
       cwd: this.workspacePath,
@@ -42,7 +57,10 @@ export class DiagnosticsManager {
       ignore: ['**/addons/**', '**/.godot/**'],
     });
 
-    console.error(`[SCAN] Opening ${files.length} files`);
+    console.error(`[SCAN] Found ${files.length} .gd files`);
+    if (files.length <= 5) {
+      console.error(`[SCAN] Files found:`, files);
+    }
 
     // Open all files in batches
     const BATCH_SIZE = 50;
