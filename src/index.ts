@@ -26,6 +26,8 @@ async function main(): Promise<void> {
   const lspClient = new LSPClient();
   const diagnosticsManager = new DiagnosticsManager(lspClient);
   let isConnected = false;
+  let isReconnecting = false;
+  let reconnectTimer: NodeJS.Timeout | null = null;
 
   // Set workspace path if provided
   const workspacePath = process.env.GODOT_WORKSPACE_PATH;
@@ -101,22 +103,39 @@ async function main(): Promise<void> {
   };
 
   lspClient.on('close', () => {
-    console.error('LSP connection closed. Attempting to reconnect...');
+    console.error('LSP connection closed.');
     isConnected = false;
+
+    // Skip if shutting down or already reconnecting
+    if (!lspClient.shouldReconnect() || isReconnecting) {
+      if (isReconnecting) {
+        console.error('Reconnection already in progress');
+      }
+      return;
+    }
+
+    isReconnecting = true;
+    console.error('Starting reconnection loop...');
 
     // Attempt to reconnect
     const reconnect = async (): Promise<void> => {
+      if (!lspClient.shouldReconnect()) {
+        isReconnecting = false;
+        return;
+      }
+
       try {
         await lspClient.connect();
         console.error('Reconnected to Godot LSP');
         isConnected = true;
+        isReconnecting = false;
       } catch {
         // Retry after 5 seconds
-        setTimeout(reconnect, 5000);
+        reconnectTimer = setTimeout(reconnect, 5000);
       }
     };
 
-    setTimeout(reconnect, 5000);
+    reconnectTimer = setTimeout(reconnect, 5000);
   });
 
   // Start server with stdio transport
@@ -126,13 +145,36 @@ async function main(): Promise<void> {
   console.error('Godot MCP server running');
 
   // Cleanup on exit
-  const cleanup = () => {
+  let cleanupCalled = false;
+  const cleanup = (signal: string) => {
+    if (cleanupCalled) return;
+    cleanupCalled = true;
+
+    console.error(`Shutting down (${signal})...`);
+
+    // Stop reconnection loop
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    isReconnecting = false;
+
+    // Disconnect LSP client
     lspClient.disconnect();
+
+    console.error('Cleanup complete');
     process.exit(0);
   };
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
+  // Register all cleanup handlers
+  process.on('SIGINT', () => cleanup('SIGINT'));
+  process.on('SIGTERM', () => cleanup('SIGTERM'));
+  process.on('SIGHUP', () => cleanup('SIGHUP'));
+  process.on('beforeExit', () => cleanup('beforeExit'));
+
+  // Detect stdio close (Claude disconnect)
+  process.stdin.on('close', () => cleanup('stdin-close'));
+  process.stdout.on('close', () => cleanup('stdout-close'));
 }
 
 main().catch((error) => {

@@ -13,6 +13,7 @@ export class LSPClient extends EventEmitter {
   private readonly host: string;
   private workspacePath: string | null = null;
   private readonly debug: boolean;
+  private isShuttingDown = false;
 
   constructor(host = '127.0.0.1', debug = false) {
     super();
@@ -90,11 +91,19 @@ export class LSPClient extends EventEmitter {
    * Disconnect from LSP server
    */
   disconnect(): void {
+    this.isShuttingDown = true;
     if (this.socket) {
       this.socket.destroy();
       this.socket = null;
     }
     this.cache.clearAll();
+  }
+
+  /**
+   * Check if reconnection is allowed
+   */
+  shouldReconnect(): boolean {
+    return !this.isShuttingDown;
   }
 
   /**
