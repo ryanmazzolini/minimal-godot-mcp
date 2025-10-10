@@ -48,7 +48,7 @@ async function main(): Promise<void> {
   // Initialize MCP server
   const server = new Server(
     {
-      name: 'godot-server-mcp',
+      name: 'minimal-godot-mcp',
       version: '0.1.0',
     },
     {

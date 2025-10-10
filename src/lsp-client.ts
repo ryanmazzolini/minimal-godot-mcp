@@ -183,7 +183,7 @@ export class LSPClient extends EventEmitter {
       params: {
         processId: process.pid,
         clientInfo: {
-          name: 'godot-server-mcp',
+          name: 'minimal-godot-mcp',
           version: '0.1.0',
         },
         rootUri: workspaceUri,

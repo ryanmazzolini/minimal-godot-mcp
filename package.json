@@ -1,11 +1,11 @@
 {
-  "name": "godot-server-mcp",
+  "name": "minimal-godot-mcp",
   "version": "0.1.0",
   "description": "Minimal MCP server for real-time GDScript syntax validation via Godot LSP",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "godot-server-mcp": "./dist/index.js"
+    "minimal-godot-mcp": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",

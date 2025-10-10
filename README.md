@@ -1,20 +1,20 @@
 # minimal-godot-mcp
 
-> Real-time GDScript syntax validation for AI coding assistants
+> Lightweight MCP server bridging Godot LSP to MCP clients for GDScript validation
 
 [![npm version](https://img.shields.io/npm/v/minimal-godot-mcp.svg)](https://www.npmjs.com/package/minimal-godot-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 
-Get instant feedback on GDScript syntax errors while editing with Claude, Cline, or other MCP clients. No context switching to Godot editor, no custom plugins—just a lightweight bridge to Godot's built-in LSP.
+Built with one mission: surface Godot diagnostics with minimal overhead.
 
-Unlike other Godot MCP servers that focus on project manipulation, minimal-godot-mcp does one thing well: surface diagnostics with minimal overhead.
+Get instant GDScript syntax feedback in Claude, Cursor, and other MCP clients—no context switching to Godot, no custom plugins. Just a lightweight bridge to Godot's native LSP.
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
 - [Features](#features)
-- [Installation](#installation)
+- [Configuration](#configuration)
 - [Usage](#usage)
 - [Comparison](#comparison)
 - [Development](#development)
@@ -25,88 +25,26 @@ Unlike other Godot MCP servers that focus on project manipulation, minimal-godot
 
 ## Quick Start
 
-🚀 **Get started in 2 minutes:**
-
-```bash
-# Install globally
-npm install -g minimal-godot-mcp
-
-# Start Godot editor with your project
-```
-
-Configure your MCP client (Claude Desktop, Cline, etc.) by adding to config:
-
-```json
-{
-  "mcpServers": {
-    "godot": {
-      "command": "minimal-godot-mcp"
-    }
-  }
-}
-```
-
-Restart your MCP client and start editing `.gd` files ✨
-
-## Features
-
-- **🔌 Zero-config LSP integration** - Uses Godot's native Language Server (no plugins, no extra dependencies)
-- **⚡ Fast diagnostics** - Single-file checks return in <1s
-- **📦 Minimal footprint** - <10MB memory, <200 LOC core implementation
-- **💬 Low context overhead** - Lightweight responses to minimize AI token usage
-- **🔄 Resilient connections** - Handles Godot restarts and reconnections automatically
-- **🤝 Plays nice** - Compatible with godot-vscode-plugin and other LSP clients
-- **🌐 Workspace scanning** - Optional bulk checking of all `.gd` files
-
-See the context usage in Claude Code:
-
-![context-use](docs/context-use.png)
-
-## Installation
-
 ### Prerequisites
+
 - Node.js 24+
 - Godot 3.2+ or 4.x with LSP enabled
 
 ### Setup
 
+> **Note:** Package not yet published to npm. For now, clone and build locally.
+
 ```bash
-npm install -g minimal-godot-mcp
+# Clone and build
+git clone https://github.com/ryanmazzolini/minimal-godot-mcp.git
+cd minimal-godot-mcp
+npm install
+npm run build
+
+# Start Godot editor with your project
 ```
 
-Configure your MCP client (Claude Desktop, Cline, etc.):
-
-```json
-{
-  "mcpServers": {
-    "godot": {
-      "command": "minimal-godot-mcp"
-    }
-  }
-}
-```
-
-**Environment variables** (optional):
-```json
-{
-  "mcpServers": {
-    "godot": {
-      "command": "minimal-godot-mcp",
-      "env": {
-        "GODOT_LSP_PORT": "6005",
-        "GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"
-      }
-    }
-  }
-}
-```
-
-- `GODOT_LSP_PORT`: Override default port selection (default: tries 6007, 6005, 6008)
-- `GODOT_WORKSPACE_PATH`: Set Godot project path for LSP initialization (default: uses workspace from Godot's notification)
-
-### Claude Code Configuration
-
-For Claude Code, add to `~/.claude/config.json`:
+Configure your MCP client (eg. Claude Code) to use the local build:
 
 ```json
 {
@@ -119,7 +57,57 @@ For Claude Code, add to `~/.claude/config.json`:
 }
 ```
 
-Restart Claude Code after modifying the config.
+> **Tip:** See [Configuration](#configuration) for environment variables and client-specific examples.
+
+Restart your MCP client and start editing `.gd` files ✨
+
+## Features
+
+- **🔌 Zero-config LSP integration** - Uses Godot's native Language Server (no plugins, no extra
+  dependencies)
+- **⚡ Fast diagnostics** - Single-file checks return in <1s
+- **📦 Minimal footprint** - <10MB memory, <200 LOC core implementation
+- **💬 Low context overhead** - Lightweight responses to minimize AI token usage
+- **🔄 Resilient connections** - Handles Godot restarts and reconnections automatically
+- **🤝 Plays nice** - Compatible with godot-vscode-plugin and other LSP clients
+- **🌐 Workspace scanning** - Optional bulk checking of all `.gd` files
+
+See the context usage in Claude Code:
+
+![context-use](docs/context-use.png)
+
+## Configuration
+
+### Environment Variables
+
+Set these environment variables in your MCP client configuration to customize behavior:
+
+- **`GODOT_LSP_PORT`**: Override default port selection
+  Default: tries ports 6007, 6005, 6008 in order
+  Example: `"GODOT_LSP_PORT": "6005"`
+
+- **`GODOT_WORKSPACE_PATH`**: Set Godot project path for LSP initialization
+  Default: uses workspace from Godot's notification
+  Example: `"GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"`
+
+### MCP Client Examples
+
+**Claude Code** (`~/.claude/config.json`):
+
+```json
+{
+  "mcpServers": {
+    "godot": {
+      "command": "node",
+      "args": ["/path/to/minimal-godot-mcp/dist/index.js"],
+      "env": {
+        "GODOT_LSP_PORT": "6007",
+        "GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"
+      }
+    }
+  }
+}
+```
 
 ## Usage
 
@@ -135,6 +123,7 @@ Restart Claude Code after modifying the config.
 Fast single-file diagnostic check (<1s).
 
 **Input:**
+
 ```json
 {
   "file_path": "/absolute/path/to/script.gd"
@@ -142,6 +131,7 @@ Fast single-file diagnostic check (<1s).
 ```
 
 **Output:**
+
 ```json
 {
   "diagnostics": {
@@ -162,14 +152,17 @@ Fast single-file diagnostic check (<1s).
 
 ⚠️ **EXPENSIVE** operation - scans ALL `.gd` files in workspace (5-30s for 100+ files).
 
-Use sparingly for workspace-wide error checking. Requires `GODOT_WORKSPACE_PATH` environment variable.
+Use sparingly for workspace-wide error checking. Requires `GODOT_WORKSPACE_PATH` environment
+variable.
 
 **Input:**
+
 ```json
 {}
 ```
 
 **Output:**
+
 ```json
 {
   "files_scanned": 150,
@@ -216,28 +209,19 @@ The MCP client receives:
 
 How minimal-godot-mcp differs from other Godot MCP servers:
 
-| Feature | minimal-godot-mcp | ee0pdt/Godot-MCP | Coding-Solo/godot-mcp |
-|---------|------------------|------------------|----------------------|
-| Custom plugin required | ❌ | ✅ | ❌ |
-| Project manipulation | ❌ | ✅ | ✅ |
-| LSP integration | ✅ Native | ❌ Custom | ❌ GDScript ops |
-| Scope | Diagnostics only | Full control | CLI + scripts |
+| Feature                | minimal-godot-mcp | ee0pdt/Godot-MCP | Coding-Solo/godot-mcp |
+|------------------------|-------------------|------------------|-----------------------|
+| Custom plugin required | ❌                 | ✅                | ❌                     |
+| Project manipulation   | ❌                 | ✅                | ✅                     |
+| LSP integration        | ✅ Native          | ❌ Custom         | ❌ GDScript ops        |
+| Scope                  | Diagnostics only  | Full control     | CLI + scripts         |
 
-**Use minimal-godot-mcp when:** You want lightweight syntax checking during AI-assisted GDScript editing
+**Use minimal-godot-mcp when:** You want lightweight syntax checking during AI-assisted GDScript
+editing
 
 **Use alternatives when:** You need scene management, node creation, or full project control
 
 ## Development
-
-### Quick Start
-
-```bash
-git clone https://github.com/yourusername/minimal-godot-mcp.git
-cd minimal-godot-mcp
-npm install
-npm run build
-npm run dev
-```
 
 ### Architecture
 
@@ -249,7 +233,8 @@ npm run dev
 ```
 
 **LSP Communication:**
-1. Connect to `localhost:6007` via TCP
+
+1. Connect to Godot LSP via TCP (tries `localhost` ports 6007, 6005, 6008)
 2. Send LSP `initialize` request
 3. Sync documents with `textDocument/didOpen`
 4. Receive `textDocument/publishDiagnostics` notifications
@@ -263,6 +248,7 @@ npm run lint      # ESLint + Prettier
 ```
 
 **Manual testing:**
+
 1. Start Godot with test project
 2. Run `npm run dev`
 3. Configure MCP client
@@ -274,6 +260,7 @@ npm run lint      # ESLint + Prettier
 Contributions welcome! See [Development](#development) for setup.
 
 Before submitting:
+
 - Run `npm run format` and `npm test`
 - Verify changes work with a real Godot project
 - Keep scope focused on diagnostics (no project manipulation)
@@ -281,16 +268,19 @@ Before submitting:
 ## Troubleshooting
 
 **"Connection refused on port 6007"**
+
 - Godot editor not running
 - LSP disabled in project settings
 - Firewall blocking localhost
 
 **"No diagnostics returned"**
+
 - File not part of Godot project
 - File not opened in editor (LSP needs context)
 - Syntax is actually valid
 
 **"Stale diagnostics"**
+
 - Cache not invalidating on file changes
 - LSP not sending update notifications
 
@@ -301,11 +291,16 @@ In Godot: `Project → Project Settings → Network → Language Server → Log`
 ## Related Projects
 
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** - The protocol specification
-- **[Godot LSP Documentation](https://docs.godotengine.org/en/stable/tutorials/editor/external_editor.html)** - Godot's Language Server setup
-- **[awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)** - Curated list of MCP servers
-- **[godot-vscode-plugin](https://github.com/godotengine/godot-vscode-plugin)** - Official VSCode extension (uses same LSP)
+- *
+  *[Godot LSP Documentation](https://docs.godotengine.org/en/stable/tutorials/editor/external_editor.html)
+  ** - Godot's Language Server setup
+- **[awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)** - Curated list of MCP
+  servers
+- **[godot-vscode-plugin](https://github.com/godotengine/godot-vscode-plugin)** - Official VSCode
+  extension (uses same LSP)
 
 **Alternative Godot MCP servers:**
+
 - [ee0pdt/Godot-MCP](https://github.com/ee0pdt/Godot-MCP) - Full project control via custom plugin
 - [Coding-Solo/godot-mcp](https://github.com/Coding-Solo/godot-mcp) - CLI-based GDScript operations
 
