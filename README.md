@@ -291,13 +291,9 @@ In Godot: `Project → Project Settings → Network → Language Server → Log`
 ## Related Projects
 
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** - The protocol specification
-- *
-  *[Godot LSP Documentation](https://docs.godotengine.org/en/stable/tutorials/editor/external_editor.html)
-  ** - Godot's Language Server setup
-- **[awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)** - Curated list of MCP
-  servers
-- **[godot-vscode-plugin](https://github.com/godotengine/godot-vscode-plugin)** - Official VSCode
-  extension (uses same LSP)
+- **[Godot LSP Documentation](https://docs.godotengine.org/en/stable/tutorials/editor/external_editor.html)** - Godot's Language Server setup
+- **[awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)** - Curated list of MCP servers
+- **[godot-vscode-plugin](https://github.com/godotengine/godot-vscode-plugin)** - Official VSCode extension (uses same LSP)
 
 **Alternative Godot MCP servers:**
 
