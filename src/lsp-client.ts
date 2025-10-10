@@ -1,5 +1,6 @@
 import { Socket } from 'net';
 import { EventEmitter } from 'events';
+import { fileURLToPath } from 'url';
 import { LSPPublishDiagnosticsParams } from './types.js';
 import { DiagnosticCache, transformDiagnostics } from './diagnostics.js';
 
@@ -14,6 +15,7 @@ export class LSPClient extends EventEmitter {
   private workspacePath: string | null = null;
   private readonly debug: boolean;
   private isShuttingDown = false;
+  private readonly MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
 
   constructor(host = '127.0.0.1', debug = false) {
     super();
@@ -33,7 +35,11 @@ export class LSPClient extends EventEmitter {
   private getPortsToTry(): number[] {
     const envPort = process.env.GODOT_LSP_PORT;
     if (envPort) {
-      return [parseInt(envPort, 10)];
+      const port = parseInt(envPort, 10);
+      if (isNaN(port) || port < 1 || port > 65535) {
+        throw new Error(`Invalid GODOT_LSP_PORT: ${envPort} (must be 1-65535)`);
+      }
+      return [port];
     }
     return [6007, 6005, 6008]; // Try 6007 first (Godot 4.x), then others
   }
@@ -224,6 +230,13 @@ export class LSPClient extends EventEmitter {
    * Handle incoming data from LSP server
    */
   private handleData(data: Buffer): void {
+    // Prevent unbounded buffer growth from malformed messages
+    if (this.buffer.length + data.length > this.MAX_BUFFER_SIZE) {
+      console.error('[LSP] Buffer size exceeded, disconnecting');
+      this.disconnect();
+      return;
+    }
+
     this.buffer += data.toString();
 
     while (true) {
@@ -244,7 +257,11 @@ export class LSPClient extends EventEmitter {
       const messageContent = this.buffer.slice(messageStart, messageEnd);
       this.buffer = this.buffer.slice(messageEnd);
 
-      this.handleMessage(JSON.parse(messageContent));
+      try {
+        this.handleMessage(JSON.parse(messageContent));
+      } catch (err) {
+        console.error('[LSP] Failed to parse message:', err);
+      }
     }
   }
 
@@ -280,8 +297,7 @@ export class LSPClient extends EventEmitter {
   private handlePublishDiagnostics(params: LSPPublishDiagnosticsParams): void {
     this.log('Diagnostics received:', params.uri, `(${params.diagnostics.length} items)`);
 
-    // Convert file:// URI to absolute path
-    const filePath = params.uri.replace('file://', '');
+    const filePath = fileURLToPath(params.uri);
 
     // Transform and cache diagnostics
     const diagnostics = transformDiagnostics(params.diagnostics);

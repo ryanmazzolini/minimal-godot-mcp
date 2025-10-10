@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import { resolve, relative } from 'path';
 import fg from 'fast-glob';
 import { LSPClient } from './lsp-client.js';
 import { Diagnostic } from './types.js';
@@ -35,9 +36,21 @@ export class DiagnosticsManager {
    * Get diagnostics for a specific file
    */
   async getFileDiagnostics(filePath: string): Promise<Diagnostic[]> {
-    const content = await readFile(filePath, 'utf-8');
-    await this.lspClient.openFile(filePath, content);
-    return this.lspClient.getDiagnostics(filePath);
+    if (!this.workspacePath) {
+      throw new Error('Workspace path not set. Ensure Godot is running with a project open.');
+    }
+
+    // Validate path is within workspace to prevent path traversal
+    const normalizedPath = resolve(filePath);
+    const relativePath = relative(this.workspacePath, normalizedPath);
+
+    if (relativePath.startsWith('..') || !relativePath) {
+      throw new Error(`File path must be within workspace: ${filePath}`);
+    }
+
+    const content = await readFile(normalizedPath, 'utf-8');
+    await this.lspClient.openFile(normalizedPath, content);
+    return this.lspClient.getDiagnostics(normalizedPath);
   }
 
   /**

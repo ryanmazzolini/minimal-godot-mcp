@@ -99,4 +99,82 @@ describe('LSPClient Lifecycle', () => {
       assert.strictEqual(eventFired, true);
     });
   });
+
+  describe('port validation', () => {
+    it('should reject invalid port numbers', () => {
+      process.env.GODOT_LSP_PORT = '99999';
+      const client = new LSPClient();
+
+      assert.rejects(
+        client.connect(),
+        /Invalid GODOT_LSP_PORT/
+      );
+
+      delete process.env.GODOT_LSP_PORT;
+    });
+
+    it('should reject negative ports', () => {
+      process.env.GODOT_LSP_PORT = '-1';
+      const client = new LSPClient();
+
+      assert.rejects(
+        client.connect(),
+        /Invalid GODOT_LSP_PORT/
+      );
+
+      delete process.env.GODOT_LSP_PORT;
+    });
+
+    it('should reject zero port', () => {
+      process.env.GODOT_LSP_PORT = '0';
+      const client = new LSPClient();
+
+      assert.rejects(
+        client.connect(),
+        /Invalid GODOT_LSP_PORT/
+      );
+
+      delete process.env.GODOT_LSP_PORT;
+    });
+
+    it('should reject non-numeric ports', () => {
+      process.env.GODOT_LSP_PORT = 'abc';
+      const client = new LSPClient();
+
+      assert.rejects(
+        client.connect(),
+        /Invalid GODOT_LSP_PORT/
+      );
+
+      delete process.env.GODOT_LSP_PORT;
+    });
+  });
+
+  describe('buffer limits', () => {
+    it('should have 10MB max buffer size', () => {
+      const client = new LSPClient();
+      const maxSize = (client as any).MAX_BUFFER_SIZE;
+      assert.strictEqual(maxSize, 10 * 1024 * 1024);
+    });
+  });
+
+  describe('message parsing', () => {
+    it('should handle malformed JSON without crashing', () => {
+      const client = new LSPClient();
+      const handleData = (client as any).handleData.bind(client);
+
+      const malformedMessage = Buffer.from('Content-Length: 5\r\n\r\n{bad}');
+      assert.doesNotThrow(() => handleData(malformedMessage));
+    });
+
+    it('should continue processing after JSON error', () => {
+      const client = new LSPClient();
+      const handleData = (client as any).handleData.bind(client);
+
+      const badMessage = Buffer.from('Content-Length: 5\r\n\r\n{bad}');
+      handleData(badMessage);
+
+      assert.strictEqual(client.shouldReconnect(), true);
+    });
+  });
 });
