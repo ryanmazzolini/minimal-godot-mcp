@@ -56,13 +56,13 @@ Once Godot is running, diagnostics will be available automatically.`,
 export const getDiagnosticsTool = {
   name: 'get_diagnostics',
   description:
-    'Get syntax diagnostics from Godot LSP for a specific GDScript file. Fast operation (<1s). Use this for single file checks. For workspace-wide scanning, use scan_workspace_diagnostics instead.',
+    'Retrieve errors, warnings, and diagnostic messages for a GDScript (.gd) file from the Godot Language Server. Returns syntax errors, type errors, and code quality issues. Fast operation (<1s). Use this to check individual .gd files for problems. For workspace-wide scanning, use scan_workspace_diagnostics instead.',
   inputSchema: {
     type: 'object',
     properties: {
       file_path: {
         type: 'string',
-        description: 'Absolute path to the .gd file to check for syntax errors.',
+        description: 'Absolute path to the GDScript (.gd) file to analyze for errors, warnings, and issues.',
       },
     },
     required: ['file_path'],

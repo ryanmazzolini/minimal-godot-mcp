@@ -56,7 +56,7 @@ Once Godot is running, diagnostics will be available automatically.`,
 export const scanWorkspaceDiagnosticsTool = {
   name: 'scan_workspace_diagnostics',
   description:
-    '⚠️ EXPENSIVE: Scans ALL .gd files in workspace (may take 5-30s for 100+ files). Use sparingly - only when you need workspace-wide diagnostics. For single file checks, use get_diagnostics instead. Opens each .gd file (excluding addons/ and .godot/) to retrieve diagnostics from Godot LSP.',
+    '⚠️ EXPENSIVE: Scans ALL GDScript (.gd) files in workspace for errors, warnings, and issues (may take 5-30s for 100+ files). Use sparingly - only when you need to find problems across the entire codebase. For checking individual files, use get_diagnostics instead. Opens each .gd file (excluding addons/ and .godot/) to retrieve diagnostics from Godot Language Server.',
   inputSchema: {
     type: 'object',
     properties: {},
