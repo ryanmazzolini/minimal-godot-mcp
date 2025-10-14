@@ -83,12 +83,16 @@ See the context usage in Claude Code:
 Set these environment variables in your MCP client configuration to customize behavior:
 
 - **`GODOT_LSP_PORT`**: Override default port selection
-  Default: tries ports 6007, 6005, 6008 in order
-  Example: `"GODOT_LSP_PORT": "6005"`
+  - Default: tries ports 6007, 6005, 6008 in order
+  - Example: `"GODOT_LSP_PORT": "6005"`
 
-- **`GODOT_WORKSPACE_PATH`**: Set Godot project path for LSP initialization
-  Default: uses workspace from Godot's notification
-  Example: `"GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"`
+- **`GODOT_WORKSPACE_PATH`**: Explicitly set Godot project path
+  - **Auto-detection priority**:
+    1. `GODOT_WORKSPACE_PATH` env var (if set)
+    2. `gdscript_client/changeWorkspace` notification from Godot
+    3. Current working directory (if contains `project.godot`)
+  - **Recommendation**: Set explicitly for reliable operation
+  - Example: `"GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"`
 
 ### MCP Client Examples
 
@@ -169,8 +173,8 @@ variable.
   "files_with_issues": 3,
   "scan_time_seconds": 12.45,
   "diagnostics": {
-    "/path/to/file1.gd": [...],
-    "/path/to/file2.gd": [...]
+    "/path/to/file1.gd": [],
+    "/path/to/file2.gd": []
   }
 }
 ```

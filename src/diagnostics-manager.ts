@@ -4,12 +4,14 @@ import { resolve, relative } from 'path';
 import fg from 'fast-glob';
 import { LSPClient } from './lsp-client.js';
 import { Diagnostic } from './types.js';
+import { getWorkspaceFromCwd } from './workspace-detection.js';
 
 /**
  * Manages workspace-wide diagnostic operations
  */
 export class DiagnosticsManager {
   private workspacePath: string | null = null;
+  private workspaceDetectionAttempted = false;
 
   constructor(private lspClient: LSPClient) {
     // Listen for workspace changes from Godot
@@ -27,30 +29,52 @@ export class DiagnosticsManager {
   }
 
   /**
-   * Set workspace path (from gdscript_client/changeWorkspace)
+   * Set workspace path (from gdscript_client/changeWorkspace or env var)
    */
   setWorkspace(path: string): void {
     if (!existsSync(path)) {
       console.error(`[DiagnosticsManager] Warning: Workspace path does not exist: ${path}`);
     }
     this.workspacePath = path;
+    this.workspaceDetectionAttempted = true;
   }
 
   /**
-   * Ensure workspace path is set, throwing if not
+   * Attempt to auto-detect workspace from current working directory
    */
-  private ensureWorkspace(): string {
-    if (!this.workspacePath) {
-      throw new Error('Workspace path not set. Ensure Godot is running with a project open.');
+  private async attemptWorkspaceDetection(): Promise<void> {
+    if (this.workspaceDetectionAttempted || this.workspacePath) {
+      return;
     }
-    return this.workspacePath;
+    this.workspaceDetectionAttempted = true;
+
+    const cwdWorkspace = await getWorkspaceFromCwd();
+    if (cwdWorkspace) {
+      this.workspacePath = cwdWorkspace;
+      console.error(`[DiagnosticsManager] Auto-detected workspace from cwd: ${cwdWorkspace}`);
+    }
   }
 
   /**
    * Get diagnostics for a specific file
    */
   async getFileDiagnostics(filePath: string): Promise<Diagnostic[]> {
-    const workspace = this.ensureWorkspace();
+    // Try auto-detection if workspace not yet set
+    await this.attemptWorkspaceDetection();
+
+    if (!this.workspacePath) {
+      throw new Error(
+        'Workspace not found. Auto-detects if running from project root, otherwise set GODOT_WORKSPACE_PATH:\n' +
+        '{\n' +
+        '  "mcpServers": {\n' +
+        '    "godot": {\n' +
+        '      "env": { "GODOT_WORKSPACE_PATH": "/absolute/path/to/godot/project" }\n' +
+        '    }\n' +
+        '  }\n' +
+        '}'
+      );
+    }
+    const workspace = this.workspacePath;
 
     // Validate path is within workspace to prevent path traversal
     const normalizedPath = resolve(filePath);
@@ -76,7 +100,22 @@ export class DiagnosticsManager {
    * Scan entire workspace for diagnostics
    */
   async scanWorkspace(): Promise<Record<string, Diagnostic[]>> {
-    const workspace = this.ensureWorkspace();
+    // Try auto-detection if workspace not yet set
+    await this.attemptWorkspaceDetection();
+
+    if (!this.workspacePath) {
+      throw new Error(
+        'Workspace not found. Auto-detects if running from project root, otherwise set GODOT_WORKSPACE_PATH:\n' +
+        '{\n' +
+        '  "mcpServers": {\n' +
+        '    "godot": {\n' +
+        '      "env": { "GODOT_WORKSPACE_PATH": "/absolute/path/to/godot/project" }\n' +
+        '    }\n' +
+        '  }\n' +
+        '}'
+      );
+    }
+    const workspace = this.workspacePath;
 
     console.error(`[SCAN] Workspace path: ${workspace}`);
 
