@@ -37,6 +37,8 @@
 
 ## MCP Tool: `get_diagnostics`
 
+Check GDScript files for errors after editing or when analyzing code. Returns syntax errors, type errors, undefined variables, missing functions, and code quality issues from Godot LSP (<1s).
+
 **Input:** `{ file_path: string }` (absolute path to .gd file)
 
 **Output:**

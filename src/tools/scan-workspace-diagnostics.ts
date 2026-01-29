@@ -49,7 +49,10 @@ export async function scanWorkspaceDiagnostics(
 export const scanWorkspaceDiagnosticsTool = {
   name: 'scan_workspace_diagnostics',
   description:
-    'EXPENSIVE OPERATION: Scans ALL GDScript (.gd) files in workspace for errors, warnings, and issues (may take 5-30s for 100+ files). Use sparingly - only when you need to find problems across the entire codebase. For checking individual files, use get_diagnostics instead. Opens each .gd file (excluding addons/ and .godot/) to retrieve diagnostics from Godot Language Server.',
+    'Scan entire workspace for GDScript errors across all .gd files (~1-2s for 100+ files). ' +
+    'Returns errors from all .gd files excluding addons/ and .godot/. ' +
+    'Use to find all errors/warnings in the project. ' +
+    'For single-file checks, use get_diagnostics instead (<1s).',
   inputSchema: {
     type: 'object',
     properties: {},

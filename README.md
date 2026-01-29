@@ -8,7 +8,8 @@
 
 Built with one mission: surface Godot diagnostics with minimal overhead.
 
-Get instant GDScript syntax feedback in Claude, Cursor, and other MCP clients—no context switching to Godot, no custom plugins. Just a lightweight bridge to Godot's native LSP.
+Get instant GDScript syntax feedback in Claude, Cursor, and other MCP clients—no context switching
+to Godot, no custom plugins. Just a lightweight bridge to Godot's native LSP.
 
 ## Table of Contents
 
@@ -51,13 +52,16 @@ Configure your MCP client (eg. Claude Code) to use the local build:
   "mcpServers": {
     "godot": {
       "command": "node",
-      "args": ["/path/to/minimal-godot-mcp/dist/index.js"]
+      "args": [
+        "/path/to/minimal-godot-mcp/dist/index.js"
+      ]
     }
   }
 }
 ```
 
-> **Tip:** See [Configuration](#configuration) for environment variables and client-specific examples.
+> **Tip:
+** See [Configuration](#configuration) for environment variables and client-specific examples.
 
 Restart your MCP client and start editing `.gd` files ✨
 
@@ -83,16 +87,16 @@ See the context usage in Claude Code:
 Set these environment variables in your MCP client configuration to customize behavior:
 
 - **`GODOT_LSP_PORT`**: Override default port selection
-  - Default: tries ports 6007, 6005, 6008 in order
-  - Example: `"GODOT_LSP_PORT": "6005"`
+    - Default: tries ports 6007, 6005, 6008 in order
+    - Example: `"GODOT_LSP_PORT": "6005"`
 
 - **`GODOT_WORKSPACE_PATH`**: Explicitly set Godot project path
-  - **Auto-detection priority**:
-    1. `GODOT_WORKSPACE_PATH` env var (if set)
-    2. `gdscript_client/changeWorkspace` notification from Godot
-    3. Current working directory (if contains `project.godot`)
-  - **Recommendation**: Set explicitly for reliable operation
-  - Example: `"GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"`
+    - **Auto-detection priority**:
+        1. `GODOT_WORKSPACE_PATH` env var (if set)
+        2. `gdscript_client/changeWorkspace` notification from Godot
+        3. Current working directory (if contains `project.godot`)
+    - **Recommendation**: Set explicitly for reliable operation
+    - Example: `"GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"`
 
 ### MCP Client Examples
 
@@ -103,7 +107,9 @@ Set these environment variables in your MCP client configuration to customize be
   "mcpServers": {
     "godot": {
       "command": "node",
-      "args": ["/path/to/minimal-godot-mcp/dist/index.js"],
+      "args": [
+        "/path/to/minimal-godot-mcp/dist/index.js"
+      ],
       "env": {
         "GODOT_LSP_PORT": "6007",
         "GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"
@@ -124,7 +130,8 @@ Set these environment variables in your MCP client configuration to customize be
 
 #### `get_diagnostics`
 
-Fast single-file diagnostic check (<1s).
+Check GDScript files for errors after editing or when analyzing code. Returns syntax errors, type
+errors, undefined variables, missing functions, and code quality issues from Godot LSP (<1s).
 
 **Input:**
 
@@ -154,10 +161,9 @@ Fast single-file diagnostic check (<1s).
 
 #### `scan_workspace_diagnostics`
 
-⚠️ **EXPENSIVE** operation - scans ALL `.gd` files in workspace (5-30s for 100+ files).
-
-Use sparingly for workspace-wide error checking. Requires `GODOT_WORKSPACE_PATH` environment
-variable.
+Scan entire workspace for GDScript errors across all .gd files (~1-2s for 100+ files). Returns 
+errors from all .gd files excluding addons/ and .godot/. Use to find all errors/warnings in the 
+project. Requires `GODOT_WORKSPACE_PATH` environment variable.
 
 **Input:**
 
@@ -171,7 +177,7 @@ variable.
 {
   "files_scanned": 150,
   "files_with_issues": 3,
-  "scan_time_seconds": 12.45,
+  "scan_time_seconds": 1.5,
   "diagnostics": {
     "/path/to/file1.gd": [],
     "/path/to/file2.gd": []

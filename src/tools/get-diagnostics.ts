@@ -49,7 +49,10 @@ export async function getDiagnostics(
 export const getDiagnosticsTool = {
   name: 'get_diagnostics',
   description:
-    'Retrieve errors, warnings, and diagnostic messages for a GDScript (.gd) file from the Godot Language Server. Returns syntax errors, type errors, and code quality issues. Fast operation (<1s). Use this to check individual .gd files for problems. For workspace-wide scanning, use scan_workspace_diagnostics instead.',
+    'Check GDScript files for errors after editing or when analyzing code. ' +
+    'Returns syntax errors, type errors, undefined variables, missing functions, and code quality issues from Godot LSP (<1s). ' +
+    'Use this tool when: user references .gd files, requests GDScript modifications, or reports code errors. ' +
+    'For workspace-wide validation, use scan_workspace_diagnostics instead.',
   inputSchema: {
     type: 'object',
     properties: {
