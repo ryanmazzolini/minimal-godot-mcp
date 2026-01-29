@@ -1,73 +1,37 @@
 # Agent Guidelines
 
-## Project Vision
+## Mission
 
-**See [README.md#vision](README.md#vision) for complete project goals.**
+Expose Godot LSP diagnostics to MCP clients for GDScript validation.
 
-**Core mission:** Expose Godot LSP diagnostics to MCP clients for real-time GDScript syntax validation.
+## Scope
 
-## Scope Boundaries
+### In Scope
 
-### ✅ In Scope
-
-- Retrieve diagnostics from Godot's native LSP (port 6007)
+- Retrieve diagnostics from Godot's native LSP
 - Cache and format diagnostic data for MCP clients
-- Handle LSP connection lifecycle/reconnection
+- Handle LSP connection lifecycle and reconnection
 
-### ❌ Out of Scope
+### Out of Scope
 
-- Project manipulation (nodes/scenes/resources)
-- Code generation/refactoring
+- Project manipulation (nodes, scenes, resources)
+- Code generation or refactoring
 - Asset management
-- Build/export/debugging beyond syntax errors
+- Build, export, or debugging beyond syntax errors
 
-**When evaluating features, refer to [README.md#vision](README.md#vision).**
+## Constraints
 
-## Architecture Constraints
+- **Native LSP only** - No custom Godot plugins
+- **Minimal memory footprint** - Cache only what's needed
+- **Fast diagnostic response** - Return cached data when possible
+- **TypeScript strict mode** - No `any` types
+- **Few runtime dependencies** - Keep the dependency tree small
 
-- Use Godot's **native LSP** - NO custom Godot plugins
-- Target <200 LOC core implementation
-- Maintain <10MB memory footprint
-- Return diagnostics <1s after LSP update
+## MCP Tools
 
-## Implementation Standards
+| Tool | Input | Output |
+|------|-------|--------|
+| `get_diagnostics` | `{ file_path: string }` | Diagnostics for single file |
+| `scan_workspace_diagnostics` | `{}` | Diagnostics for all `.gd` files |
 
-- TypeScript strict mode - **NO `any` types**
-- Minimal dependencies (<5 npm packages)
-- Self-documenting code > comments
-- Cache-first diagnostic strategy
-
-## MCP Tool: `get_diagnostics`
-
-Check GDScript files for errors after editing or when analyzing code. Returns syntax errors, type errors, undefined variables, missing functions, and code quality issues from Godot LSP (<1s).
-
-**Input:** `{ file_path: string }` (absolute path to .gd file)
-
-**Output:**
-
-```typescript
-{
-  diagnostics: Array<{
-    line: number
-    column: number
-    severity: 'error' | 'warning' | 'info'
-    message: string
-    code?: string
-  }>
-}
-```
-
-**Behavior:**
-
-- Empty array if file not in Godot project
-- Error if Godot LSP unreachable
-- 5s timeout, return cached if available
-
-## Development Flow
-
-1. **Research**: Review [README.md](README.md) for context
-2. **Validate scope**: Ensure changes align with vision
-3. **Implement**: Follow architecture constraints
-4. **Test**: Verify against real Godot editor
-
-**Simplicity over features.** Every addition must justify its existence for diagnostic retrieval.
+See [README.md#mcp-tools](README.md#mcp-tools) for response schemas.
