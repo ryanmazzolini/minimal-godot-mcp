@@ -39,7 +39,7 @@ describe('DiagnosticsManager', () => {
       const manager = new DiagnosticsManager(lspClient);
       await assert.rejects(
         manager.getFileDiagnostics('/any/path.gd'),
-        /Workspace path not set/
+        /Workspace not found/
       );
     });
   });
