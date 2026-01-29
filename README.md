@@ -87,16 +87,16 @@ See the context usage in Claude Code:
 Set these environment variables in your MCP client configuration to customize behavior:
 
 - **`GODOT_LSP_PORT`**: Override default port selection
-    - Default: tries ports 6007, 6005, 6008 in order
-    - Example: `"GODOT_LSP_PORT": "6005"`
+  - Default: tries ports 6007, 6005, 6008 in order
+  - Example: `"GODOT_LSP_PORT": "6005"`
 
 - **`GODOT_WORKSPACE_PATH`**: Explicitly set Godot project path
-    - **Auto-detection priority**:
+  - **Auto-detection priority**:
         1. `GODOT_WORKSPACE_PATH` env var (if set)
         2. `gdscript_client/changeWorkspace` notification from Godot
         3. Current working directory (if contains `project.godot`)
-    - **Recommendation**: Set explicitly for reliable operation
-    - Example: `"GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"`
+  - **Recommendation**: Set explicitly for reliable operation
+  - Example: `"GODOT_WORKSPACE_PATH": "/absolute/path/to/your/godot/project"`
 
 ### MCP Client Examples
 
@@ -161,8 +161,8 @@ errors, undefined variables, missing functions, and code quality issues from God
 
 #### `scan_workspace_diagnostics`
 
-Scan entire workspace for GDScript errors across all .gd files (~1-2s for 100+ files). Returns 
-errors from all .gd files excluding addons/ and .godot/. Use to find all errors/warnings in the 
+Scan entire workspace for GDScript errors across all .gd files (~1-2s for 100+ files). Returns
+errors from all .gd files excluding addons/ and .godot/. Use to find all errors/warnings in the
 project. Requires `GODOT_WORKSPACE_PATH` environment variable.
 
 **Input:**
@@ -235,7 +235,7 @@ editing
 
 ### Architecture
 
-```
+```text
 ┌─────────────┐         ┌────────────────────┐         ┌────────────┐
 │ MCP Client  │ ◄─MCP─► │ minimal-godot-mcp  │ ◄─LSP─► │   Godot    │
 │             │         │   (TypeScript)     │         │   Editor   │
@@ -277,19 +277,19 @@ Before submitting:
 
 ## Troubleshooting
 
-**"Connection refused on port 6007"**
+### "Connection refused on port 6007"
 
 - Godot editor not running
 - LSP disabled in project settings
 - Firewall blocking localhost
 
-**"No diagnostics returned"**
+### "No diagnostics returned"
 
 - File not part of Godot project
 - File not opened in editor (LSP needs context)
 - Syntax is actually valid
 
-**"Stale diagnostics"**
+### "Stale diagnostics"
 
 - Cache not invalidating on file changes
 - LSP not sending update notifications

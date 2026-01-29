@@ -9,11 +9,13 @@
 ## Scope Boundaries
 
 ### ✅ In Scope
+
 - Retrieve diagnostics from Godot's native LSP (port 6007)
 - Cache and format diagnostic data for MCP clients
 - Handle LSP connection lifecycle/reconnection
 
 ### ❌ Out of Scope
+
 - Project manipulation (nodes/scenes/resources)
 - Code generation/refactoring
 - Asset management
@@ -42,6 +44,7 @@ Check GDScript files for errors after editing or when analyzing code. Returns sy
 **Input:** `{ file_path: string }` (absolute path to .gd file)
 
 **Output:**
+
 ```typescript
 {
   diagnostics: Array<{
@@ -55,6 +58,7 @@ Check GDScript files for errors after editing or when analyzing code. Returns sy
 ```
 
 **Behavior:**
+
 - Empty array if file not in Godot project
 - Error if Godot LSP unreachable
 - 5s timeout, return cached if available
