@@ -6,6 +6,16 @@ import { LSPClient } from './lsp-client.js';
 import { Diagnostic } from './types.js';
 import { getWorkspaceFromCwd } from './workspace-detection.js';
 
+const WORKSPACE_NOT_FOUND_ERROR =
+  'Workspace not found. Auto-detects if running from project root, otherwise set GODOT_WORKSPACE_PATH:\n' +
+  '{\n' +
+  '  "mcpServers": {\n' +
+  '    "godot": {\n' +
+  '      "env": { "GODOT_WORKSPACE_PATH": "/absolute/path/to/godot/project" }\n' +
+  '    }\n' +
+  '  }\n' +
+  '}';
+
 /**
  * Manages workspace-wide diagnostic operations
  */
@@ -63,16 +73,7 @@ export class DiagnosticsManager {
     await this.attemptWorkspaceDetection();
 
     if (!this.workspacePath) {
-      throw new Error(
-        'Workspace not found. Auto-detects if running from project root, otherwise set GODOT_WORKSPACE_PATH:\n' +
-        '{\n' +
-        '  "mcpServers": {\n' +
-        '    "godot": {\n' +
-        '      "env": { "GODOT_WORKSPACE_PATH": "/absolute/path/to/godot/project" }\n' +
-        '    }\n' +
-        '  }\n' +
-        '}'
-      );
+      throw new Error(WORKSPACE_NOT_FOUND_ERROR);
     }
     const workspace = this.workspacePath;
 
@@ -104,16 +105,7 @@ export class DiagnosticsManager {
     await this.attemptWorkspaceDetection();
 
     if (!this.workspacePath) {
-      throw new Error(
-        'Workspace not found. Auto-detects if running from project root, otherwise set GODOT_WORKSPACE_PATH:\n' +
-        '{\n' +
-        '  "mcpServers": {\n' +
-        '    "godot": {\n' +
-        '      "env": { "GODOT_WORKSPACE_PATH": "/absolute/path/to/godot/project" }\n' +
-        '    }\n' +
-        '  }\n' +
-        '}'
-      );
+      throw new Error(WORKSPACE_NOT_FOUND_ERROR);
     }
     const workspace = this.workspacePath;
 
