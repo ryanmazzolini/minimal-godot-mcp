@@ -1,3 +1,4 @@
+import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { resolve, relative } from 'path';
 import fg from 'fast-glob';
@@ -29,26 +30,44 @@ export class DiagnosticsManager {
    * Set workspace path (from gdscript_client/changeWorkspace)
    */
   setWorkspace(path: string): void {
+    if (!existsSync(path)) {
+      console.error(`[DiagnosticsManager] Warning: Workspace path does not exist: ${path}`);
+    }
     this.workspacePath = path;
+  }
+
+  /**
+   * Ensure workspace path is set, throwing if not
+   */
+  private ensureWorkspace(): string {
+    if (!this.workspacePath) {
+      throw new Error('Workspace path not set. Ensure Godot is running with a project open.');
+    }
+    return this.workspacePath;
   }
 
   /**
    * Get diagnostics for a specific file
    */
   async getFileDiagnostics(filePath: string): Promise<Diagnostic[]> {
-    if (!this.workspacePath) {
-      throw new Error('Workspace path not set. Ensure Godot is running with a project open.');
-    }
+    const workspace = this.ensureWorkspace();
 
     // Validate path is within workspace to prevent path traversal
     const normalizedPath = resolve(filePath);
-    const relativePath = relative(this.workspacePath, normalizedPath);
+    const relativePath = relative(workspace, normalizedPath);
 
     if (relativePath.startsWith('..') || !relativePath) {
       throw new Error(`File path must be within workspace: ${filePath}`);
     }
 
-    const content = await readFile(normalizedPath, 'utf-8');
+    let content: string;
+    try {
+      content = await readFile(normalizedPath, 'utf-8');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      throw new Error(`Cannot read file ${filePath}: ${msg}`);
+    }
+
     await this.lspClient.openFile(normalizedPath, content);
     return this.lspClient.getDiagnostics(normalizedPath);
   }
@@ -57,15 +76,13 @@ export class DiagnosticsManager {
    * Scan entire workspace for diagnostics
    */
   async scanWorkspace(): Promise<Record<string, Diagnostic[]>> {
-    if (!this.workspacePath) {
-      throw new Error('Workspace path not set. Ensure Godot is running with a project open.');
-    }
+    const workspace = this.ensureWorkspace();
 
-    console.error(`[SCAN] Workspace path: ${this.workspacePath}`);
+    console.error(`[SCAN] Workspace path: ${workspace}`);
 
     // Find all .gd files
     const files = await fg('**/*.gd', {
-      cwd: this.workspacePath,
+      cwd: workspace,
       absolute: true,
       ignore: ['**/addons/**', '**/.godot/**'],
     });

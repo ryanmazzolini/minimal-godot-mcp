@@ -1,4 +1,5 @@
 import { DiagnosticsManager } from '../diagnostics-manager.js';
+import { LSP_NOT_RUNNING_ERROR } from '../errors.js';
 import { Diagnostic } from '../types.js';
 
 export interface ScanWorkspaceOutput {
@@ -23,15 +24,7 @@ export async function scanWorkspaceDiagnostics(
       files_with_issues: 0,
       scan_time_seconds: 0,
       diagnostics: {},
-      error: `Godot LSP is not running. Please start Godot with your project:
-
-CLI: godot --editor --path /path/to/project
-GUI: Open the project in Godot Editor
-
-The Language Server Protocol must be enabled (default: ON) in:
-Project → Project Settings → Network → Language Server
-
-Once Godot is running, diagnostics will be available automatically.`,
+      error: LSP_NOT_RUNNING_ERROR,
     };
   }
 
@@ -56,7 +49,7 @@ Once Godot is running, diagnostics will be available automatically.`,
 export const scanWorkspaceDiagnosticsTool = {
   name: 'scan_workspace_diagnostics',
   description:
-    '⚠️ EXPENSIVE: Scans ALL GDScript (.gd) files in workspace for errors, warnings, and issues (may take 5-30s for 100+ files). Use sparingly - only when you need to find problems across the entire codebase. For checking individual files, use get_diagnostics instead. Opens each .gd file (excluding addons/ and .godot/) to retrieve diagnostics from Godot Language Server.',
+    'EXPENSIVE OPERATION: Scans ALL GDScript (.gd) files in workspace for errors, warnings, and issues (may take 5-30s for 100+ files). Use sparingly - only when you need to find problems across the entire codebase. For checking individual files, use get_diagnostics instead. Opens each .gd file (excluding addons/ and .godot/) to retrieve diagnostics from Godot Language Server.',
   inputSchema: {
     type: 'object',
     properties: {},

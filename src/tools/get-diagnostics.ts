@@ -1,4 +1,5 @@
 import { DiagnosticsManager } from '../diagnostics-manager.js';
+import { LSP_NOT_RUNNING_ERROR } from '../errors.js';
 import { Diagnostic } from '../types.js';
 
 export interface GetDiagnosticsInput {
@@ -33,15 +34,7 @@ export async function getDiagnostics(
   if (!isConnected) {
     return {
       diagnostics: {},
-      error: `Godot LSP is not running. Please ask the user to start Godot with their project:
-
-CLI: godot --editor --path /path/to/project
-GUI: Open the project in Godot Editor
-
-The Language Server Protocol must be enabled (default: ON) in:
-Project → Project Settings → Network → Language Server
-
-Once Godot is running, diagnostics will be available automatically.`,
+      error: LSP_NOT_RUNNING_ERROR,
     };
   }
 

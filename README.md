@@ -4,7 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/minimal-godot-mcp.svg)](https://www.npmjs.com/package/minimal-godot-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
 
 Built with one mission: surface Godot diagnostics with minimal overhead.
 
@@ -27,7 +27,7 @@ Get instant GDScript syntax feedback in Claude, Cursor, and other MCP clients—
 
 ### Prerequisites
 
-- Node.js 24+
+- Node.js 22+
 - Godot 3.2+ or 4.x with LSP enabled
 
 ### Setup
