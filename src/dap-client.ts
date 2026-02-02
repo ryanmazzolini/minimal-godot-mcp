@@ -202,6 +202,7 @@ export class DAPClient extends EventEmitter {
 
   /**
    * Send DAP message
+   * @see https://microsoft.github.io/debug-adapter-protocol/overview#base-protocol
    */
   private sendMessage(message: DAPMessage): void {
     if (!this.socket) {
@@ -210,7 +211,8 @@ export class DAPClient extends EventEmitter {
     }
 
     const content = JSON.stringify(message);
-    const header = `Content-Length: ${content.length}\r\n\r\n`;
+    // Content-Length must be in bytes, not characters (DAP base protocol spec)
+    const header = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n`;
     this.socket.write(header + content);
   }
 

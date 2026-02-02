@@ -134,6 +134,35 @@ describe('DAPClient', () => {
     });
   });
 
+  describe('message sending', () => {
+    it('should use byte length for Content-Length header', () => {
+      const client = new DAPClient();
+      // Create a mock socket to capture what's written
+      let writtenData = '';
+      const mockSocket = {
+        write: (data: string) => { writtenData = data; },
+        destroyed: false,
+      };
+      (client as any).socket = mockSocket;
+
+      // Send a message with multi-byte characters (emoji = 4 bytes, but 2 chars in JS)
+      const sendMessage = (client as any).sendMessage.bind(client);
+      sendMessage({ seq: 1, type: 'request', command: 'test', arguments: { text: '日本語' } });
+
+      // "日本語" is 3 characters but 9 bytes in UTF-8
+      // Verify Content-Length uses byte count, not character count
+      const contentLengthMatch = writtenData.match(/Content-Length: (\d+)/);
+      assert.ok(contentLengthMatch, 'Should have Content-Length header');
+
+      const headerEnd = writtenData.indexOf('\r\n\r\n');
+      const content = writtenData.slice(headerEnd + 4);
+      const byteLength = Buffer.byteLength(content);
+
+      assert.strictEqual(parseInt(contentLengthMatch![1], 10), byteLength,
+        'Content-Length should match byte length, not character length');
+    });
+  });
+
   describe('message parsing', () => {
     it('should handle malformed JSON without crashing', () => {
       const client = new DAPClient();
