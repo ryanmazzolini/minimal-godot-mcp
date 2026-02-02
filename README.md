@@ -181,14 +181,17 @@ Clear the console output buffer.
 
 ```mermaid
 flowchart LR
-    MCP[MCP Client] <-->|MCP Protocol| Server[minimal-godot-mcp]
+    MCP[MCP Client] <-->|stdio| Server[minimal-godot-mcp]
     Server <-->|LSP :6007| Godot[Godot Editor]
-    Server <-.->|DAP :6009| Godot
+    Server <-.->|DAP :6006| Godot
 ```
 
-The server connects to Godot's LSP via TCP, syncs documents, and caches diagnostics for MCP tool responses.
+- **[LSP](https://microsoft.github.io/language-server-protocol/)** (Language Server Protocol, solid line): Always connected for diagnostics
+- **[DAP](https://microsoft.github.io/debug-adapter-protocol/specification)** (Debug Adapter Protocol, dotted line): Lazy-connects when `get_console_output` is called with a running scene
 
-DAP connection captures console output when a scene is running (lazy-connects on first `get_console_output` call).
+See also:
+
+- [Godot external editor setup](https://docs.godotengine.org/en/stable/tutorials/editor/external_editor.html)
 
 ### Commands
 
