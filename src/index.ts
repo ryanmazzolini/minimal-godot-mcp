@@ -17,6 +17,18 @@ import {
   scanWorkspaceDiagnostics,
   scanWorkspaceDiagnosticsTool,
 } from './tools/scan-workspace-diagnostics.js';
+import { DAPClient } from './dap-client.js';
+import { ConsoleManager } from './console-manager.js';
+import { DAPOutputEventBody } from './types.js';
+import {
+  getConsoleOutput,
+  getConsoleOutputTool,
+  GetConsoleOutputInput,
+} from './tools/get-console-output.js';
+import {
+  clearConsoleOutput,
+  clearConsoleOutputTool,
+} from './tools/clear-console-output.js';
 
 /**
  * Main MCP server
@@ -29,9 +41,14 @@ async function main(): Promise<void> {
   let isReconnecting = false;
   let reconnectTimer: NodeJS.Timeout | null = null;
 
+  // DAP client for console output
+  const dapClient = new DAPClient();
+  const consoleManager = new ConsoleManager();
+  let isDAPConnected = false;
+
   // Set workspace path if provided
   const workspacePath = process.env.GODOT_WORKSPACE_PATH;
-  if (workspacePath) {
+  if (workspacePath !== undefined && workspacePath !== '') {
     diagnosticsManager.setWorkspace(workspacePath);
   }
 
@@ -44,6 +61,25 @@ async function main(): Promise<void> {
     console.error(`Warning: ${err.message}`);
     console.error('MCP server will start anyway. Diagnostics will be unavailable until Godot is running.');
   }
+
+  // DAP lazy connection helper
+  const tryConnectDAP = async (): Promise<boolean> => {
+    if (isDAPConnected) return true;
+
+    try {
+      await dapClient.connect();
+      isDAPConnected = true;
+      console.error('Connected to Godot DAP');
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Set up DAP event handlers
+  dapClient.on('output', (event: DAPOutputEventBody) => {
+    consoleManager.addOutput(event);
+  });
 
   // Initialize MCP server
   const server = new Server(
@@ -60,7 +96,12 @@ async function main(): Promise<void> {
 
   // Register tool list handler
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [getDiagnosticsTool, scanWorkspaceDiagnosticsTool],
+    tools: [
+      getDiagnosticsTool,
+      scanWorkspaceDiagnosticsTool,
+      getConsoleOutputTool,
+      clearConsoleOutputTool,
+    ],
   }));
 
   // Register tool call handler
@@ -94,11 +135,41 @@ async function main(): Promise<void> {
       };
     }
 
+    if (name === 'get_console_output') {
+      // Lazy connect: try to connect to DAP if not already connected
+      await tryConnectDAP();
+
+      const input = args as unknown as GetConsoleOutputInput;
+      const result = getConsoleOutput(consoleManager, isDAPConnected, input);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'clear_console_output') {
+      const result = clearConsoleOutput(consoleManager);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+
     throw new Error(`Unknown tool: ${name}`);
   });
 
   // Handle errors
-  server.onerror = (error) => {
+  server.onerror = (error): void => {
     console.error('MCP Server error:', error);
   };
 
@@ -138,6 +209,17 @@ async function main(): Promise<void> {
     reconnectTimer = setTimeout(reconnect, 5000);
   });
 
+  // Handle DAP events
+  dapClient.on('close', () => {
+    console.error('DAP connection closed. Will reconnect on next tool call.');
+    isDAPConnected = false;
+  });
+
+  dapClient.on('terminated', () => {
+    console.error('Debug session ended. Run a scene in Godot to capture console output.');
+    isDAPConnected = false;
+  });
+
   // Start server with stdio transport
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -146,21 +228,22 @@ async function main(): Promise<void> {
 
   // Cleanup on exit
   let cleanupCalled = false;
-  const cleanup = (signal: string) => {
+  const cleanup = (signal: string): void => {
     if (cleanupCalled) return;
     cleanupCalled = true;
 
     console.error(`Shutting down (${signal})...`);
 
-    // Stop reconnection loop
+    // Stop LSP reconnection loop
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
     }
     isReconnecting = false;
 
-    // Disconnect LSP client
+    // Disconnect clients
     lspClient.disconnect();
+    dapClient.disconnect();
 
     console.error('Cleanup complete');
     process.exit(0);

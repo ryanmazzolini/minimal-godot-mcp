@@ -11,13 +11,14 @@ Expose Godot LSP diagnostics to MCP clients for GDScript validation.
 - Retrieve diagnostics from Godot's native LSP
 - Cache and format diagnostic data for MCP clients
 - Handle LSP connection lifecycle and reconnection
+- Capture console output from Godot DAP
 
 ### Out of Scope
 
 - Project manipulation (nodes, scenes, resources)
 - Code generation or refactoring
 - Asset management
-- Build, export, or debugging beyond syntax errors
+- Debug session control (start/stop, breakpoints)
 
 ## Constraints
 
@@ -33,5 +34,9 @@ Expose Godot LSP diagnostics to MCP clients for GDScript validation.
 |------|-------|--------|
 | `get_diagnostics` | `{ file_path: string }` | Diagnostics for single file |
 | `scan_workspace_diagnostics` | `{}` | Diagnostics for all `.gd` files |
+| `get_console_output` | `{ limit?, category?, since? }` | Console output from running scene |
+| `clear_console_output` | `{}` | Clear output buffer |
 
 See [README.md#mcp-tools](README.md#mcp-tools) for response schemas.
+
+Console tools require an active debug session (scene running in Godot).
