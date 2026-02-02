@@ -45,6 +45,7 @@ async function main(): Promise<void> {
   const dapClient = new DAPClient();
   const consoleManager = new ConsoleManager();
   let isDAPConnected = false;
+  let dapConnecting: Promise<boolean> | null = null;
 
   // Set workspace path if provided
   const workspacePath = process.env.GODOT_WORKSPACE_PATH;
@@ -62,17 +63,26 @@ async function main(): Promise<void> {
     console.error('MCP server will start anyway. Diagnostics will be unavailable until Godot is running.');
   }
 
-  // DAP lazy connection helper
+  // DAP lazy connection helper (with lock to prevent concurrent connection attempts)
   const tryConnectDAP = async (): Promise<boolean> => {
     if (isDAPConnected) return true;
+    if (dapConnecting) return dapConnecting;
+
+    dapConnecting = (async () => {
+      try {
+        await dapClient.connect();
+        isDAPConnected = true;
+        console.error('Connected to Godot DAP');
+        return true;
+      } catch {
+        return false;
+      }
+    })();
 
     try {
-      await dapClient.connect();
-      isDAPConnected = true;
-      console.error('Connected to Godot DAP');
-      return true;
-    } catch {
-      return false;
+      return await dapConnecting;
+    } finally {
+      dapConnecting = null;
     }
   };
 
