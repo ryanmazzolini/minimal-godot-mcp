@@ -36,6 +36,8 @@ Start Godot with your project, then configure your MCP client (see below).
 |----------|-------------|---------|
 | `GODOT_LSP_PORT` | Override LSP port | Tries 6007, 6005, 6008 |
 | `GODOT_WORKSPACE_PATH` | Godot project path | Auto-detected from cwd |
+| `GODOT_DAP_PORT` | Override DAP port | Tries 6006, 6010 |
+| `GODOT_DAP_BUFFER_SIZE` | Max console entries to buffer | `1000` |
 
 ### MCP Client Setup
 
@@ -138,17 +140,58 @@ Scan all `.gd` files in the workspace (excludes `addons/` and `.godot/`).
 }
 ```
 
+### `get_console_output`
+
+Get console output from Godot debug session. Requires a running scene (F5 in Godot).
+
+```json
+// Input (all optional)
+{
+  "limit": 50,
+  "category": "console",
+  "since": 1706000000000
+}
+
+// Output
+{
+  "entries": [
+    { "timestamp": 1706000001234, "category": "console", "message": "Player spawned", "source": "/project/player.gd", "line": 42 }
+  ],
+  "total_buffered": 150
+}
+```
+
+Categories: `console` (print statements), `stdout`, `stderr` (errors/warnings).
+
+### `clear_console_output`
+
+Clear the console output buffer.
+
+```json
+// Input
+{}
+
+// Output
+{ "cleared": true }
+```
+
 ## Development
 
 ### Architecture
 
 ```mermaid
 flowchart LR
-    MCP[MCP Client] <-->|MCP Protocol| Server[minimal-godot-mcp]
-    Server <-->|LSP over TCP| Godot[Godot Editor]
+    MCP[MCP Client] <-->|stdio| Server[minimal-godot-mcp]
+    Server <-->|LSP :6007| Godot[Godot Editor]
+    Server <-.->|DAP :6006| Godot
 ```
 
-The server connects to Godot's LSP via TCP, syncs documents, and caches diagnostics for MCP tool responses.
+- **[LSP](https://microsoft.github.io/language-server-protocol/)** (Language Server Protocol, solid line): Always connected for diagnostics
+- **[DAP](https://microsoft.github.io/debug-adapter-protocol/specification)** (Debug Adapter Protocol, dotted line): Lazy-connects when `get_console_output` is called with a running scene
+
+See also:
+
+- [Godot external editor setup](https://docs.godotengine.org/en/stable/tutorials/editor/external_editor.html)
 
 ### Commands
 
