@@ -1,9 +1,12 @@
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { ConsoleManager } from '../src/console-manager.js';
-import { DAPOutputEventBody } from '../src/types.js';
 
 describe('ConsoleManager', () => {
+  afterEach(() => {
+    delete process.env.GODOT_DAP_BUFFER_SIZE;
+  });
+
   describe('buffer management', () => {
     it('should add output entries', () => {
       const manager = new ConsoleManager();
@@ -91,14 +94,12 @@ describe('ConsoleManager', () => {
       process.env.GODOT_DAP_BUFFER_SIZE = '500';
       const manager = new ConsoleManager();
       assert.strictEqual(manager.getMaxSize(), 500);
-      delete process.env.GODOT_DAP_BUFFER_SIZE;
     });
 
     it('should ignore invalid env var', () => {
       process.env.GODOT_DAP_BUFFER_SIZE = 'invalid';
       const manager = new ConsoleManager();
       assert.strictEqual(manager.getMaxSize(), 1000);
-      delete process.env.GODOT_DAP_BUFFER_SIZE;
     });
   });
 

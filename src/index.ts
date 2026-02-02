@@ -68,7 +68,7 @@ async function main(): Promise<void> {
     if (isDAPConnected) return true;
     if (dapConnecting) return dapConnecting;
 
-    dapConnecting = (async () => {
+    dapConnecting = (async (): Promise<boolean> => {
       try {
         await dapClient.connect();
         isDAPConnected = true;

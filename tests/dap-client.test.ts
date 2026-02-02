@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, afterEach } from 'node:test';
+import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { DAPClient } from '../src/dap-client.js';
 import { EventEmitter } from 'events';
