@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.1...minimal-godot-mcp-v0.1.2) (2026-02-09)
+
+
+### Features
+
+* publish to npm with release-please and OIDC trusted publishing ([9248acc](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/9248acc52eba8912bbb1831e436ecd9c003b170b))
+
 ## [0.1.1](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.0...minimal-godot-mcp-v0.1.1) (2026-02-02)
 
 
