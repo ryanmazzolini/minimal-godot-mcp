@@ -2,6 +2,7 @@
 
 > MCP server bridging Godot's native LSP to AI coding assistants for GDScript validation
 
+[![npm](https://img.shields.io/npm/v/@ryanmazzolini/minimal-godot-mcp)](https://www.npmjs.com/package/@ryanmazzolini/minimal-godot-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)](https://nodejs.org/)
 
@@ -25,15 +26,6 @@ Configure your MCP client to run the server with `npx` (see examples below). Sta
 
 ## Configuration
 
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GODOT_LSP_PORT` | Override LSP port | Tries 6007, 6005, 6008 |
-| `GODOT_WORKSPACE_PATH` | Godot project path | Auto-detected from cwd |
-| `GODOT_DAP_PORT` | Override DAP port | Tries 6006, 6010 |
-| `GODOT_DAP_BUFFER_SIZE` | Max console entries to buffer | `1000` |
-
 ### MCP Client Setup
 
 <details>
@@ -46,10 +38,7 @@ Add to `~/.claude.json`:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"],
-      "env": {
-        "GODOT_WORKSPACE_PATH": "/path/to/your/godot/project"
-      }
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"]
     }
   }
 }
@@ -67,10 +56,7 @@ Add to `.cursor/mcp.json` in your project:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"],
-      "env": {
-        "GODOT_WORKSPACE_PATH": "/path/to/your/godot/project"
-      }
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"]
     }
   }
 }
@@ -86,7 +72,35 @@ Configure your client to run:
 npx -y @ryanmazzolini/minimal-godot-mcp
 ```
 
-Set `GODOT_WORKSPACE_PATH` environment variable to your Godot project root.
+</details>
+
+<details>
+<summary><strong>Advanced Configuration</strong></summary>
+
+All optional — defaults work for most setups.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GODOT_LSP_PORT` | Override LSP port | Tries 6007, 6005, 6008 |
+| `GODOT_WORKSPACE_PATH` | Godot project path | Auto-detected from cwd |
+| `GODOT_DAP_PORT` | Override DAP port | Tries 6006, 6010 |
+| `GODOT_DAP_BUFFER_SIZE` | Max console entries to buffer | `1000` |
+
+Pass these as `env` in your MCP client config:
+
+```json
+{
+  "mcpServers": {
+    "godot": {
+      "command": "npx",
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"],
+      "env": {
+        "GODOT_WORKSPACE_PATH": "/path/to/your/godot/project"
+      }
+    }
+  }
+}
+```
 
 </details>
 
