@@ -211,12 +211,16 @@ npm run build     # Compile TypeScript
 
 See [docs/troubleshooting.md](docs/troubleshooting.md) for connection issues, missing diagnostics, and debug logging.
 
+## Works Well With
+
+[godot-mcp](https://github.com/satelliteoflove/godot-mcp) by [@satelliteoflove](https://github.com/satelliteoflove) provides runtime control, scene manipulation, screenshots, stack traces, and direct editor interaction through a Godot addon. This project handles the LSP and DAP side — diagnostics and console output with no addon needed.
+
+The two servers are complementary and can run side by side.
+
 ## References
 
 - [Model Context Protocol](https://modelcontextprotocol.io/) - Protocol specification
 - [Godot LSP](https://docs.godotengine.org/en/stable/tutorials/editor/external_editor.html) - Language Server setup
-- [ee0pdt/Godot-MCP](https://github.com/ee0pdt/Godot-MCP) - Full project control via custom plugin
-- [Coding-Solo/godot-mcp](https://github.com/Coding-Solo/godot-mcp) - CLI-based GDScript operations
 
 ## License
 
