@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.3...minimal-godot-mcp-v0.1.4) (2026-02-09)
+
+
+### Bug Fixes
+
+* correct repository URL for npm provenance validation ([5fa97cf](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/5fa97cf2683657657503e0cfdc0517dc8e8b2626))
+
 ## [0.1.3](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.2...minimal-godot-mcp-v0.1.3) (2026-02-09)
 
 
