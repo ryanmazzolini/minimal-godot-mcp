@@ -35,7 +35,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ryanmazzolini/godot-server-mcp.git"
+    "url": "https://github.com/ryanmazzolini/minimal-godot-mcp.git"
   },
   "engines": {
     "node": ">=22.0.0"
