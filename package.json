@@ -1,11 +1,19 @@
 {
-  "name": "minimal-godot-mcp",
+  "name": "@ryanmazzolini/minimal-godot-mcp",
   "version": "0.1.1",
   "description": "Minimal MCP server for real-time GDScript syntax validation via Godot LSP",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
     "minimal-godot-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",
@@ -23,8 +31,12 @@
     "diagnostics",
     "syntax-validation"
   ],
-  "author": "",
+  "author": "ryanmazzolini",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryanmazzolini/godot-server-mcp.git"
+  },
   "engines": {
     "node": ">=22.0.0"
   },

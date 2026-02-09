@@ -13,6 +13,7 @@
 - [MCP Tools](#mcp-tools)
 - [Development](#development)
 - [Troubleshooting](#troubleshooting)
+- [Works Well With](#works-well-with)
 - [References](#references)
 - [License](#license)
 
@@ -20,13 +21,7 @@
 
 **Prerequisites:** Node.js 22+, Godot 3.2+ or 4.x with LSP enabled
 
-```bash
-git clone https://github.com/ryanmazzolini/minimal-godot-mcp.git
-cd minimal-godot-mcp
-npm install && npm run build
-```
-
-Start Godot with your project, then configure your MCP client (see below).
+Configure your MCP client to run the server with `npx` (see examples below). Start Godot with your project open, and your MCP client will connect automatically.
 
 ## Configuration
 
@@ -50,8 +45,8 @@ Add to `~/.claude.json`:
 {
   "mcpServers": {
     "godot": {
-      "command": "node",
-      "args": ["/path/to/minimal-godot-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"],
       "env": {
         "GODOT_WORKSPACE_PATH": "/path/to/your/godot/project"
       }
@@ -71,8 +66,8 @@ Add to `.cursor/mcp.json` in your project:
 {
   "mcpServers": {
     "godot": {
-      "command": "node",
-      "args": ["/path/to/minimal-godot-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"],
       "env": {
         "GODOT_WORKSPACE_PATH": "/path/to/your/godot/project"
       }
@@ -88,7 +83,7 @@ Add to `.cursor/mcp.json` in your project:
 
 Configure your client to run:
 ```bash
-node /path/to/minimal-godot-mcp/dist/index.js
+npx -y @ryanmazzolini/minimal-godot-mcp
 ```
 
 Set `GODOT_WORKSPACE_PATH` environment variable to your Godot project root.
@@ -192,6 +187,16 @@ flowchart LR
 See also:
 
 - [Godot external editor setup](https://docs.godotengine.org/en/stable/tutorials/editor/external_editor.html)
+
+### Building from Source
+
+```bash
+git clone https://github.com/ryanmazzolini/minimal-godot-mcp.git
+cd minimal-godot-mcp
+npm install && npm run build
+```
+
+Then use `node /path/to/minimal-godot-mcp/dist/index.js` instead of `npx` in your MCP client config.
 
 ### Commands
 
