@@ -71,7 +71,7 @@ export class LSPClient extends EventEmitter {
       const socket = new Socket();
       this.socket = socket;
 
-      socket.on('data', (data) => {
+      socket.on('data', (data: Buffer) => {
         this.log('Received', data.length, 'bytes');
         this.handleData(data);
       });
