@@ -1,6 +1,6 @@
 {
   "name": "@ryanmazzolini/minimal-godot-mcp",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Minimal MCP server for real-time GDScript syntax validation via Godot LSP",
   "main": "dist/index.js",
   "type": "module",
