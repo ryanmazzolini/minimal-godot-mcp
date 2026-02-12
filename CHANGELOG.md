@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.4...minimal-godot-mcp-v0.1.5) (2026-02-11)
+
+
+### Bug Fixes
+
+* explicitly type socket data callback for @types/node 25 compat ([4ce3ccd](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/4ce3ccd6b3a69cbbf6dd6efd15c337d2c9374664))
+
 ## [0.1.4](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.3...minimal-godot-mcp-v0.1.4) (2026-02-09)
 
 
