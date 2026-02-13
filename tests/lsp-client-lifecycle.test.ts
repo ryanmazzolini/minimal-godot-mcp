@@ -1,5 +1,6 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
+import { resolve } from 'node:path';
 import { LSPClient } from '../src/lsp-client.js';
 import { EventEmitter } from 'events';
 
@@ -175,6 +176,76 @@ describe('LSPClient Lifecycle', () => {
       handleData(badMessage);
 
       assert.strictEqual(client.shouldReconnect(), true);
+    });
+  });
+
+  describe('file URI construction', () => {
+    function parseLspMessage(raw: string): Record<string, unknown> {
+      return JSON.parse(raw.slice(raw.indexOf('{')));
+    }
+
+    it('should send valid file URIs in didOpen notification', async () => {
+      const client = new LSPClient();
+      const sent: string[] = [];
+      (client as any).socket = { write: (data: string) => sent.push(data) };
+
+      const absPath = resolve('test-script.gd');
+      // openFile has a 500ms sleep; don't await it, messages are sent synchronously
+      client.openFile(absPath, 'extends Node');
+
+      const didOpen = parseLspMessage(sent[0]);
+      const params = didOpen.params as { textDocument: { uri: string } };
+      const uri = params.textDocument.uri;
+
+      assert.ok(uri.startsWith('file:///'), `URI must use file:/// scheme: ${uri}`);
+      assert.ok(!uri.includes('\\'), `URI must not contain backslashes: ${uri}`);
+    });
+
+    it('should send valid file URIs in didSave notification', async () => {
+      const client = new LSPClient();
+      const sent: string[] = [];
+      (client as any).socket = { write: (data: string) => sent.push(data) };
+
+      const absPath = resolve('test-script.gd');
+      client.openFile(absPath, 'extends Node');
+
+      const didSave = parseLspMessage(sent[1]);
+      const params = didSave.params as { textDocument: { uri: string } };
+      const uri = params.textDocument.uri;
+
+      assert.ok(uri.startsWith('file:///'), `URI must use file:/// scheme: ${uri}`);
+      assert.ok(!uri.includes('\\'), `URI must not contain backslashes: ${uri}`);
+    });
+
+    it('should send valid workspace URI in initialize request', () => {
+      const savedEnv = process.env.GODOT_WORKSPACE_PATH;
+      process.env.GODOT_WORKSPACE_PATH = resolve('.');
+
+      try {
+        const client = new LSPClient();
+        const sent: string[] = [];
+        (client as any).socket = { write: (data: string) => sent.push(data) };
+
+        (client as any).sendInitialize();
+
+        const init = parseLspMessage(sent[0]);
+        const params = init.params as {
+          rootUri: string;
+          workspaceFolders: Array<{ uri: string; name: string }>;
+        };
+
+        assert.ok(params.rootUri.startsWith('file:///'), `rootUri must use file:/// scheme: ${params.rootUri}`);
+        assert.ok(!params.rootUri.includes('\\'), `rootUri must not contain backslashes: ${params.rootUri}`);
+
+        assert.ok(params.workspaceFolders[0].uri.startsWith('file:///'));
+        assert.ok(params.workspaceFolders[0].name.length > 0, 'workspace name must not be empty');
+      } finally {
+        if (savedEnv === undefined) {
+          delete process.env.GODOT_WORKSPACE_PATH;
+        } else {
+          process.env.GODOT_WORKSPACE_PATH = savedEnv;
+        }
+      }
     });
   });
 });
