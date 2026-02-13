@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.6](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.5...minimal-godot-mcp-v0.1.6) (2026-02-13)
+
+
+### Bug Fixes
+
+* make uri-utils tests cross-platform ([b2573b0](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/b2573b0eba703a90534aba10757ae55ab7d9fb3c))
+* use pathToFileURL for Windows file URI compatibility ([d16cc36](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/d16cc36213079f1659a696469abf40dcefd5c96c))
+* use pathToFileURL for Windows file URI compatibility ([55a407b](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/55a407b088073149284248678b8347c94be5d677))
+
 ## [0.1.5](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.4...minimal-godot-mcp-v0.1.5) (2026-02-11)
 
 
