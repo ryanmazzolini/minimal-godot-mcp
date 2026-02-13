@@ -1,8 +1,8 @@
 import { Socket } from 'net';
 import { EventEmitter } from 'events';
-import { fileURLToPath } from 'url';
 import { LSPPublishDiagnosticsParams } from './types.js';
 import { DiagnosticCache, transformDiagnostics } from './diagnostics.js';
+import { toFileUri, fromFileUri, workspaceName } from './uri-utils.js';
 
 /**
  * LSP Client for connecting to Godot's Language Server
@@ -116,7 +116,7 @@ export class LSPClient extends EventEmitter {
    * Open a file in the LSP to request diagnostics
    */
   async openFile(filePath: string, fileContent: string): Promise<void> {
-    const uri = `file://${filePath}`;
+    const uri = toFileUri(filePath);
 
     const didOpenNotification = {
       jsonrpc: '2.0',
@@ -173,8 +173,8 @@ export class LSPClient extends EventEmitter {
   private sendInitialize(): void {
     // Use environment variable for workspace path, or null to let Godot tell us
     const workspacePath = process.env.GODOT_WORKSPACE_PATH;
-    const workspaceUri = workspacePath ? `file://${workspacePath}` : null;
-    const workspaceName = workspacePath ? workspacePath.split('/').pop() : undefined;
+    const workspaceUri = workspacePath ? toFileUri(workspacePath) : null;
+    const wsName = workspacePath ? workspaceName(workspacePath) : undefined;
 
     const initializeRequest = {
       jsonrpc: '2.0',
@@ -190,7 +190,7 @@ export class LSPClient extends EventEmitter {
         workspaceFolders: workspaceUri ? [
           {
             uri: workspaceUri,
-            name: workspaceName,
+            name: wsName,
           },
         ] : null,
         capabilities: {
@@ -297,7 +297,7 @@ export class LSPClient extends EventEmitter {
   private handlePublishDiagnostics(params: LSPPublishDiagnosticsParams): void {
     this.log('Diagnostics received:', params.uri, `(${params.diagnostics.length} items)`);
 
-    const filePath = fileURLToPath(params.uri);
+    const filePath = fromFileUri(params.uri);
 
     // Transform and cache diagnostics
     const diagnostics = transformDiagnostics(params.diagnostics);
