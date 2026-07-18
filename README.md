@@ -204,6 +204,8 @@ See also:
 
 ### Building from Source
 
+**Prerequisites:** npm 12.0.1 with a supported Node.js release (`^22.22.2`, `^24.15.0`, or `>=26`)
+
 ```bash
 git clone https://github.com/ryanmazzolini/minimal-godot-mcp.git
 cd minimal-godot-mcp
