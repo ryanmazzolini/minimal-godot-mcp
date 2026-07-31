@@ -5,6 +5,7 @@ import fg from 'fast-glob';
 import { LSPClient } from './lsp-client.js';
 import { Diagnostic } from './types.js';
 import { getWorkspaceFromCwd } from './workspace-detection.js';
+import { normalizePath } from './path-utils.js';
 
 const WORKSPACE_NOT_FOUND_ERROR =
   'Workspace not found. Auto-detects if running from project root, otherwise set GODOT_WORKSPACE_PATH:\n' +
@@ -28,7 +29,8 @@ export class DiagnosticsManager {
     lspClient.on('workspaceChange', (params: unknown) => {
       const oldPath = this.workspacePath;
       if (params && typeof params === 'object' && 'path' in params) {
-        this.workspacePath = params.path as string;
+        // Normalize Windows paths to WSL format if running on WSL
+        this.workspacePath = normalizePath(params.path as string);
         if (oldPath !== this.workspacePath) {
           console.error(`[DiagnosticsManager] Workspace changed: ${oldPath || '(none)'} -> ${this.workspacePath}`);
         }
@@ -42,10 +44,12 @@ export class DiagnosticsManager {
    * Set workspace path (from gdscript_client/changeWorkspace or env var)
    */
   setWorkspace(path: string): void {
-    if (!existsSync(path)) {
-      console.error(`[DiagnosticsManager] Warning: Workspace path does not exist: ${path}`);
+    // Normalize Windows paths to WSL format if running on WSL
+    const normalizedPath = normalizePath(path);
+    if (!existsSync(normalizedPath)) {
+      console.error(`[DiagnosticsManager] Warning: Workspace path does not exist: ${normalizedPath}`);
     }
-    this.workspacePath = path;
+    this.workspacePath = normalizedPath;
     this.workspaceDetectionAttempted = true;
   }
 
