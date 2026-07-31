@@ -2,6 +2,8 @@
  * Utilities for handling cross-platform paths, especially WSL/Windows conversions
  */
 
+import { readFileSync } from 'fs';
+
 /**
  * Normalize a Windows path to WSL format if running on WSL
  * E.g., "E:/Work/project" -> "/mnt/e/Work/project"
@@ -39,13 +41,59 @@ export function normalizeToWindowsPath(path: string): string {
 }
 
 /**
+ * Decide whether we are running under WSL, given the ambient signals.
+ *
+ * Pure function so the decision can be tested without a WSL machine;
+ * `isWSL()` supplies the real inputs.
+ *
+ * Both signals are needed: WSL_DISTRO_NAME is absent when the process is
+ * spawned by a Windows parent (which is exactly the Godot-on-Windows case),
+ * and /proc/version is unreadable under some sandboxes.
+ */
+export function detectWSL(
+  platform: string,
+  procVersion: string | null,
+  wslDistroName?: string
+): boolean {
+  if (platform !== 'linux') {
+    return false;
+  }
+  if (wslDistroName !== undefined && wslDistroName !== '') {
+    return true;
+  }
+  // WSL1 reports "Microsoft", WSL2 reports "microsoft-standard-WSL2".
+  return procVersion !== null && procVersion.toLowerCase().includes('microsoft');
+}
+
+function readProcVersion(): string | null {
+  try {
+    return readFileSync('/proc/version', 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+let wslCache: boolean | null = null;
+
+/**
+ * Whether this process is running under WSL. Memoized - the answer cannot
+ * change during a process lifetime.
+ */
+export function isWSL(): boolean {
+  if (wslCache === null) {
+    wslCache = detectWSL(process.platform, readProcVersion(), process.env.WSL_DISTRO_NAME);
+  }
+  return wslCache;
+}
+
+/**
  * Normalize path to the current platform's format
  * Detects WSL automatically and converts Windows paths if needed
  */
 export function normalizePath(path: string): string {
-  // If we're on WSL (process.platform === 'linux' but /mnt/c exists),
-  // convert Windows paths to WSL paths
-  if (process.platform === 'linux') {
+  // Only rewrite drive-letter paths when actually on WSL. Plain Linux has no
+  // /mnt/<drive> mapping, so rewriting there would invent a bogus path.
+  if (isWSL()) {
     return normalizeToWSLPath(path);
   }
 
@@ -54,6 +102,6 @@ export function normalizePath(path: string): string {
     return normalizeToWindowsPath(path);
   }
 
-  // On other platforms (Mac, etc.), return as-is
+  // On plain Linux, macOS, etc., return as-is
   return path;
 }
