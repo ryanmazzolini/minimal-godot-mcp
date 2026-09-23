@@ -70,16 +70,30 @@ export class DAPClient extends EventEmitter {
    * Try connecting to a specific port
    */
   private async tryConnect(port: number): Promise<void> {
+    // A previous socket must not survive being replaced: it would keep
+    // delivering events (duplicating output) and count against Godot's
+    // DAP client limit.
+    this.releaseSocket();
+
     return new Promise((resolve, reject) => {
       const socket = new Socket();
       this.socket = socket;
+
+      const fail = (err: unknown): void => {
+        if (this.socket === socket) {
+          this.releaseSocket();
+        } else {
+          socket.destroy();
+        }
+        reject(err);
+      };
 
       socket.on('data', (data: Buffer) => {
         this.log('Received', data.length, 'bytes');
         this.handleData(data);
       });
 
-      socket.once('error', reject);
+      socket.once('error', fail);
 
       socket.on('close', () => {
         if (this.socket === socket) {
@@ -93,10 +107,28 @@ export class DAPClient extends EventEmitter {
           await this.initialize();
           resolve();
         } catch (err) {
-          reject(err);
+          fail(err);
         }
       });
     });
+  }
+
+  /**
+   * Destroy the current socket without shutting the client down, so a
+   * later connect() is still allowed. Emits no 'close': the caller is
+   * replacing the connection, not losing it.
+   */
+  private releaseSocket(reason = 'DAP connection replaced'): void {
+    const socket = this.socket;
+    this.socket = null;
+    this.buffer = '';
+    socket?.destroy();
+    // Pending requests were sent on the released socket and can never be answered
+    for (const [, pending] of this.pendingRequests) {
+      clearTimeout(pending.timeout);
+      pending.reject(new Error(reason));
+    }
+    this.pendingRequests.clear();
   }
 
   /**
@@ -104,16 +136,7 @@ export class DAPClient extends EventEmitter {
    */
   disconnect(): void {
     this.isShuttingDown = true;
-    if (this.socket) {
-      this.socket.destroy();
-      this.socket = null;
-    }
-    // Reject all pending requests and clear timeouts
-    for (const [, pending] of this.pendingRequests) {
-      clearTimeout(pending.timeout);
-      pending.reject(new Error('DAP client disconnected'));
-    }
-    this.pendingRequests.clear();
+    this.releaseSocket('DAP client disconnected');
   }
 
   /**
