@@ -8,7 +8,7 @@ import { DAPMessage, DAPOutputEventBody } from './types.js';
  */
 export class DAPClient extends EventEmitter {
   private socket: Socket | null = null;
-  private buffer = '';
+  private buffer: Buffer = Buffer.alloc(0);
   private readonly host: string;
   private readonly debug: boolean;
   private isShuttingDown = false;
@@ -227,13 +227,14 @@ export class DAPClient extends EventEmitter {
       return;
     }
 
-    this.buffer += data.toString();
+    // Keep byte offsets intact; a UTF-8 character may span multiple chunks.
+    this.buffer = Buffer.concat([this.buffer, data]);
 
     while (true) {
       const headerEnd = this.buffer.indexOf('\r\n\r\n');
       if (headerEnd === -1) break;
 
-      const header = this.buffer.slice(0, headerEnd);
+      const header = this.buffer.subarray(0, headerEnd).toString('ascii');
       const contentLengthMatch = header.match(/Content-Length: (\d+)/);
 
       if (!contentLengthMatch) break;
@@ -244,8 +245,10 @@ export class DAPClient extends EventEmitter {
 
       if (this.buffer.length < messageEnd) break;
 
-      const messageContent = this.buffer.slice(messageStart, messageEnd);
-      this.buffer = this.buffer.slice(messageEnd);
+      const messageContent = this.buffer.subarray(messageStart, messageEnd).toString('utf8');
+      this.buffer = messageEnd === this.buffer.length
+        ? Buffer.alloc(0)
+        : this.buffer.subarray(messageEnd);
 
       try {
         this.handleMessage(JSON.parse(messageContent) as DAPMessage);
