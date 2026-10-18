@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.6...minimal-godot-mcp-v0.1.7) (2026-10-18)
+
+
+### Bug Fixes
+
+* handle UTF-8 framing in LSP and DAP clients ([54eca30](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/54eca30ce8158b3b3adb6fca54470ca45a1fcc9b))
+
 ## [0.1.6](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.5...minimal-godot-mcp-v0.1.6) (2026-02-13)
 
 
