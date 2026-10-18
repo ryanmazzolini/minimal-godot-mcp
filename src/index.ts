@@ -225,9 +225,11 @@ async function main(): Promise<void> {
     isDAPConnected = false;
   });
 
+  // A terminated debug session does not end the DAP connection: Godot keeps
+  // the socket open and streams the next run's output over it. Treating it
+  // as a disconnect made the next tool call open a second socket.
   dapClient.on('terminated', () => {
-    console.error('Debug session ended. Run a scene in Godot to capture console output.');
-    isDAPConnected = false;
+    console.error('Debug session ended. Output of the next run will be captured.');
   });
 
   // Start server with stdio transport
