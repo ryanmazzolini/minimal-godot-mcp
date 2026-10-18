@@ -1,5 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { LSPClient } from '../src/lsp-client.js';
 import { DAPClient } from '../src/dap-client.js';
 
@@ -27,7 +29,7 @@ const protocols = [
       jsonrpc: '2.0',
       method: 'textDocument/publishDiagnostics',
       params: {
-        uri: 'file:///tmp/framing.gd',
+        uri: pathToFileURL(resolve('framing.gd')).href,
         diagnostics: [{
           range: { start: { line: 0, character: 0 }, end: { line: 0, character: 1 } },
           severity: 1,
