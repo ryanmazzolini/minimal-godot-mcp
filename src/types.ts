@@ -107,3 +107,30 @@ export interface DAPOutputEventBody {
   };
   line?: number;
 }
+
+/**
+ * DAP stopped event body. Godot reports runtime errors as reason "exception"
+ * with the error message in `text`.
+ * @see https://microsoft.github.io/debug-adapter-protocol/specification#Events_Stopped
+ */
+export interface DAPStoppedEventBody {
+  reason: string;
+  description?: string;
+  text?: string;
+  threadId?: number;
+}
+
+/**
+ * DAP stackTrace response body (only the fields read here)
+ * @see https://microsoft.github.io/debug-adapter-protocol/specification#Requests_StackTrace
+ */
+export interface DAPStackTraceResponseBody {
+  stackFrames: {
+    name: string;
+    line: number;
+    source?: {
+      name?: string;
+      path?: string;
+    };
+  }[];
+}

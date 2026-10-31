@@ -1,6 +1,11 @@
 import { Socket } from 'net';
 import { EventEmitter } from 'events';
-import { DAPMessage, DAPOutputEventBody } from './types.js';
+import {
+  DAPMessage,
+  DAPOutputEventBody,
+  DAPStackTraceResponseBody,
+  DAPStoppedEventBody,
+} from './types.js';
 
 /**
  * DAP Client for connecting to Godot's Debug Adapter
@@ -13,6 +18,7 @@ export class DAPClient extends EventEmitter {
   private readonly debug: boolean;
   private isShuttingDown = false;
   private readonly MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
+  private readonly EXCEPTION_TRACE_TIMEOUT_MS = 2000;
   private seq = 1;
   private pendingRequests = new Map<number, {
     resolve: (value: unknown) => void;
@@ -70,16 +76,30 @@ export class DAPClient extends EventEmitter {
    * Try connecting to a specific port
    */
   private async tryConnect(port: number): Promise<void> {
+    // A previous socket must not survive being replaced: it would keep
+    // delivering events (duplicating output) and count against Godot's
+    // DAP client limit.
+    this.releaseSocket();
+
     return new Promise((resolve, reject) => {
       const socket = new Socket();
       this.socket = socket;
+
+      const fail = (err: unknown): void => {
+        if (this.socket === socket) {
+          this.releaseSocket();
+        } else {
+          socket.destroy();
+        }
+        reject(err);
+      };
 
       socket.on('data', (data: Buffer) => {
         this.log('Received', data.length, 'bytes');
         this.handleData(data);
       });
 
-      socket.once('error', reject);
+      socket.once('error', fail);
 
       socket.on('close', () => {
         if (this.socket === socket) {
@@ -93,10 +113,28 @@ export class DAPClient extends EventEmitter {
           await this.initialize();
           resolve();
         } catch (err) {
-          reject(err);
+          fail(err);
         }
       });
     });
+  }
+
+  /**
+   * Destroy the current socket without shutting the client down, so a
+   * later connect() is still allowed. Emits no 'close': the caller is
+   * replacing the connection, not losing it.
+   */
+  private releaseSocket(reason = 'DAP connection replaced'): void {
+    const socket = this.socket;
+    this.socket = null;
+    this.buffer = '';
+    socket?.destroy();
+    // Pending requests were sent on the released socket and can never be answered
+    for (const [, pending] of this.pendingRequests) {
+      clearTimeout(pending.timeout);
+      pending.reject(new Error(reason));
+    }
+    this.pendingRequests.clear();
   }
 
   /**
@@ -104,16 +142,7 @@ export class DAPClient extends EventEmitter {
    */
   disconnect(): void {
     this.isShuttingDown = true;
-    if (this.socket) {
-      this.socket.destroy();
-      this.socket = null;
-    }
-    // Reject all pending requests and clear timeouts
-    for (const [, pending] of this.pendingRequests) {
-      clearTimeout(pending.timeout);
-      pending.reject(new Error('DAP client disconnected'));
-    }
-    this.pendingRequests.clear();
+    this.releaseSocket('DAP client disconnected');
   }
 
   /**
@@ -164,7 +193,7 @@ export class DAPClient extends EventEmitter {
   /**
    * Send a DAP request and wait for response
    */
-  private sendRequest(command: string, args: unknown): Promise<unknown> {
+  private sendRequest(command: string, args: unknown, timeoutMs = 10000): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const seq = this.seq++;
 
@@ -173,7 +202,7 @@ export class DAPClient extends EventEmitter {
           this.pendingRequests.delete(seq);
           reject(new Error(`DAP request '${command}' timed out`));
         }
-      }, 10000);
+      }, timeoutMs);
 
       this.pendingRequests.set(seq, { resolve, reject, timeout });
 
@@ -285,10 +314,46 @@ export class DAPClient extends EventEmitter {
       this.emit('output', body);
     }
 
+    // Handle stopped event: Godot reports runtime errors this way, never as output
+    if (message.type === 'event' && message.event === 'stopped') {
+      const body = message.body as DAPStoppedEventBody | undefined;
+      if (body?.reason === 'exception') {
+        void this.reportException(body);
+      }
+    }
+
     // Handle terminated event
     if (message.type === 'event' && message.event === 'terminated') {
       this.log('Debug session terminated');
       this.emit('terminated');
     }
+  }
+
+  /**
+   * Turn a runtime exception into an stderr output entry. The top stack frame
+   * supplies file and line; if it cannot be read, the message alone is kept.
+   */
+  private async reportException(body: DAPStoppedEventBody): Promise<void> {
+    const output: DAPOutputEventBody = {
+      category: 'stderr',
+      output: body.text ?? body.description ?? 'Runtime exception',
+    };
+
+    try {
+      const trace = (await this.sendRequest(
+        'stackTrace',
+        { threadId: body.threadId ?? 1, levels: 1 },
+        this.EXCEPTION_TRACE_TIMEOUT_MS
+      )) as DAPStackTraceResponseBody | undefined;
+      const frame = trace?.stackFrames?.[0];
+      if (frame) {
+        output.source = frame.source;
+        output.line = frame.line;
+      }
+    } catch (err) {
+      this.log('Could not read exception location:', err);
+    }
+
+    this.emit('output', output);
   }
 }

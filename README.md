@@ -151,7 +151,7 @@ Scan all `.gd` files in the workspace (excludes `addons/` and `.godot/`).
 
 ### `get_console_output`
 
-Get console output from Godot debug session. Requires a running scene (F5 in Godot).
+Get console output from Godot debug session. The server connects to Godot's debug adapter at startup and keeps the connection across runs, so output is captured from the moment a scene starts (F5 in Godot).
 
 ```json
 // Input (all optional)
@@ -170,7 +170,9 @@ Get console output from Godot debug session. Requires a running scene (F5 in God
 }
 ```
 
-Categories: `console` (print statements), `stdout`, `stderr` (errors/warnings).
+Categories: `console` (print statements), `stdout`, `stderr` (`printerr()` and runtime errors).
+
+Runtime errors (for example calling a method on a null value) are reported by Godot as a debugger stop, not as output. They appear as `stderr` entries with the file and line of the failing frame. `push_error()` and `push_warning()` are not sent over DAP by Godot and cannot be captured.
 
 ### `clear_console_output`
 
@@ -196,7 +198,7 @@ flowchart LR
 ```
 
 - **[LSP](https://microsoft.github.io/language-server-protocol/)** (Language Server Protocol, solid line): Always connected for diagnostics
-- **[DAP](https://microsoft.github.io/debug-adapter-protocol/specification)** (Debug Adapter Protocol, dotted line): Lazy-connects when `get_console_output` is called with a running scene
+- **[DAP](https://microsoft.github.io/debug-adapter-protocol/specification)** (Debug Adapter Protocol, dotted line): Connects at startup and retries every 5 seconds while Godot is not reachable
 
 See also:
 
