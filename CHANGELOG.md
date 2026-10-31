@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.7](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.6...minimal-godot-mcp-v0.1.7) (2026-10-31)
+
+
+### Bug Fixes
+
+* handle UTF-8 framing in LSP and DAP clients ([54eca30](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/54eca30ce8158b3b3adb6fca54470ca45a1fcc9b))
+* normalize Windows paths to WSL format for cross-platform compatibility ([5ea2999](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/5ea29994eb045e13d7fa65307492da77a90c6846))
+* only rewrite Windows paths when actually running under WSL ([bce1a17](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/bce1a17fd7809db712d2f51a19551cf64e0adf1c))
+
 ## [0.1.6](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.5...minimal-godot-mcp-v0.1.6) (2026-02-13)
 
 
