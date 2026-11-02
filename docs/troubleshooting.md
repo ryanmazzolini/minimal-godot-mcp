@@ -2,7 +2,7 @@
 
 ## Connection Issues
 
-### "Connection refused on port 6007"
+### "Connection refused on port 6005"
 
 **Causes:**
 
@@ -14,8 +14,10 @@
 
 1. Start Godot with your project open
 2. In Godot 4, enable Advanced Settings, then verify LSP is enabled under `Editor Settings → Network → Language Server`
-3. Check the port: `nc -zv localhost 6007`
+3. Check the port: `nc -zv localhost 6005`. This checks TCP reachability, not whether LSP initialization succeeds. Port 6007 is Godot's remote debugger, not LSP.
 4. If using a different port, set `GODOT_LSP_PORT` environment variable
+
+The MCP server stays available while connecting. Diagnostics become available only after Godot accepts LSP initialization. Each connection/initialization attempt has a five-second timeout; failed attempts retry after five seconds.
 
 ### Connection drops intermittently
 
