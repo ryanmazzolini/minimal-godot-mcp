@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.7...minimal-godot-mcp-v0.1.8) (2026-11-12)
+
+
+### Bug Fixes
+
+* **lsp:** wait for initialization before reporting readiness ([35a790d](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/35a790d5643d5a28214443af870309b0ff7288c8))
+
 ## [0.1.7](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.6...minimal-godot-mcp-v0.1.7) (2026-10-31)
 
 
