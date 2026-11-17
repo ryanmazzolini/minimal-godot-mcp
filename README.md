@@ -38,7 +38,7 @@ Add to `~/.claude.json`:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"]
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp@latest"]
     }
   }
 }
@@ -56,7 +56,7 @@ Add to `.cursor/mcp.json` in your project:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"]
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp@latest"]
     }
   }
 }
@@ -69,7 +69,7 @@ Add to `.cursor/mcp.json` in your project:
 
 Configure your client to run:
 ```bash
-npx -y @ryanmazzolini/minimal-godot-mcp
+npx -y @ryanmazzolini/minimal-godot-mcp@latest
 ```
 
 </details>
@@ -93,7 +93,7 @@ Pass these as `env` in your MCP client config:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"],
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp@latest"],
       "env": {
         "GODOT_WORKSPACE_PATH": "/path/to/your/godot/project"
       }
