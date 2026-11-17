@@ -30,6 +30,24 @@ import {
   clearConsoleOutputTool,
 } from './tools/clear-console-output.js';
 
+/** Delay between background attempts to reach Godot's debug adapter */
+const DAP_RETRY_INTERVAL_MS = 5000;
+
+type DAPConnectMode = 'eager' | 'lazy';
+
+/**
+ * GODOT_DAP_CONNECT=lazy defers the DAP connection to the first
+ * get_console_output call. That frees one of Godot's 8 debug adapter client
+ * slots per idle server, but output emitted before the call is lost.
+ */
+function getDAPConnectMode(): DAPConnectMode {
+  const value = process.env.GODOT_DAP_CONNECT;
+  if (value === undefined || value === '' || value === 'eager') return 'eager';
+  if (value === 'lazy') return 'lazy';
+  console.error(`Invalid GODOT_DAP_CONNECT: ${value} (expected eager or lazy). Using eager.`);
+  return 'eager';
+}
+
 /**
  * Main MCP server
  */
@@ -53,7 +71,7 @@ async function main(): Promise<void> {
     diagnosticsManager.setWorkspace(workspacePath);
   }
 
-  // DAP lazy connection helper (with lock to prevent concurrent connection attempts)
+  // DAP connection helper (with lock to prevent concurrent connection attempts)
   const tryConnectDAP = async (): Promise<boolean> => {
     if (isDAPConnected) return true;
     if (dapConnecting) return dapConnecting;
@@ -76,10 +94,36 @@ async function main(): Promise<void> {
     }
   };
 
+  // Godot streams output live and never replays it, so the DAP connection has
+  // to exist before the scene runs. Connect at startup and keep retrying while
+  // Godot is not reachable, instead of waiting for the first tool call.
+  let dapRetryTimer: NodeJS.Timeout | null = null;
+  const scheduleDAPConnect = (): void => {
+    if (dapRetryTimer || !dapClient.shouldReconnect()) return;
+    dapRetryTimer = setTimeout(async () => {
+      dapRetryTimer = null;
+      if (!(await tryConnectDAP())) {
+        scheduleDAPConnect();
+      }
+    }, DAP_RETRY_INTERVAL_MS);
+  };
+
   // Set up DAP event handlers
   dapClient.on('output', (event: DAPOutputEventBody) => {
     consoleManager.addOutput(event);
   });
+
+  const dapConnectMode = getDAPConnectMode();
+
+  // Not awaited: a slow DAP handshake must not delay the MCP server start
+  if (dapConnectMode === 'eager') {
+    void tryConnectDAP().then((connected) => {
+      if (!connected) {
+        console.error('Godot DAP not reachable yet. Retrying in the background.');
+        scheduleDAPConnect();
+      }
+    });
+  }
 
   // Initialize MCP server
   const server = new Server(
@@ -136,7 +180,7 @@ async function main(): Promise<void> {
     }
 
     if (name === 'get_console_output') {
-      // Lazy connect: try to connect to DAP if not already connected
+      // Connect now if Godot came up since the last background attempt
       await tryConnectDAP();
 
       const input = args as unknown as GetConsoleOutputInput;
@@ -207,8 +251,13 @@ async function main(): Promise<void> {
 
   // Handle DAP events
   dapClient.on('close', () => {
-    console.error('DAP connection closed. Will reconnect on next tool call.');
     isDAPConnected = false;
+    if (dapConnectMode === 'lazy') {
+      console.error('DAP connection closed. Will reconnect on next get_console_output call.');
+      return;
+    }
+    console.error('DAP connection closed. Reconnecting in the background.');
+    scheduleDAPConnect();
   });
 
   // A terminated debug session does not end the DAP connection: Godot keeps
@@ -236,6 +285,12 @@ async function main(): Promise<void> {
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
+    }
+
+    // Stop DAP reconnection loop
+    if (dapRetryTimer) {
+      clearTimeout(dapRetryTimer);
+      dapRetryTimer = null;
     }
 
     // Disconnect clients
