@@ -33,6 +33,21 @@ import {
 /** Delay between background attempts to reach Godot's debug adapter */
 const DAP_RETRY_INTERVAL_MS = 5000;
 
+type DAPConnectMode = 'eager' | 'lazy';
+
+/**
+ * GODOT_DAP_CONNECT=lazy defers the DAP connection to the first
+ * get_console_output call. That frees one of Godot's 8 debug adapter client
+ * slots per idle server, but output emitted before the call is lost.
+ */
+function getDAPConnectMode(): DAPConnectMode {
+  const value = process.env.GODOT_DAP_CONNECT;
+  if (value === undefined || value === '' || value === 'eager') return 'eager';
+  if (value === 'lazy') return 'lazy';
+  console.error(`Invalid GODOT_DAP_CONNECT: ${value} (expected eager or lazy). Using eager.`);
+  return 'eager';
+}
+
 /**
  * Main MCP server
  */
@@ -98,13 +113,17 @@ async function main(): Promise<void> {
     consoleManager.addOutput(event);
   });
 
+  const dapConnectMode = getDAPConnectMode();
+
   // Not awaited: a slow DAP handshake must not delay the MCP server start
-  void tryConnectDAP().then((connected) => {
-    if (!connected) {
-      console.error('Godot DAP not reachable yet. Retrying in the background.');
-      scheduleDAPConnect();
-    }
-  });
+  if (dapConnectMode === 'eager') {
+    void tryConnectDAP().then((connected) => {
+      if (!connected) {
+        console.error('Godot DAP not reachable yet. Retrying in the background.');
+        scheduleDAPConnect();
+      }
+    });
+  }
 
   // Initialize MCP server
   const server = new Server(
@@ -232,8 +251,12 @@ async function main(): Promise<void> {
 
   // Handle DAP events
   dapClient.on('close', () => {
-    console.error('DAP connection closed. Reconnecting in the background.');
     isDAPConnected = false;
+    if (dapConnectMode === 'lazy') {
+      console.error('DAP connection closed. Will reconnect on next get_console_output call.');
+      return;
+    }
+    console.error('DAP connection closed. Reconnecting in the background.');
     scheduleDAPConnect();
   });
 

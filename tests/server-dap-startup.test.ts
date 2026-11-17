@@ -96,3 +96,47 @@ describe('MCP server DAP connection at startup', () => {
     assert.strictEqual(entry.line, 10);
   });
 });
+
+describe('MCP server with GODOT_DAP_CONNECT=lazy', () => {
+  let dap: FakeDAPServer | undefined;
+  let client: Client | undefined;
+
+  afterEach(async () => {
+    await client?.close();
+    await dap?.close();
+    client = undefined;
+    dap = undefined;
+  });
+
+  it('does not connect at startup', async () => {
+    dap = await startFakeDAPServer();
+    client = await startMCPServer(dap.port, { GODOT_DAP_CONNECT: 'lazy' });
+
+    await settle(1000);
+
+    assert.strictEqual(dap.acceptedCount(), 0);
+  });
+
+  it('connects on the first get_console_output call', async () => {
+    dap = await startFakeDAPServer();
+    client = await startMCPServer(dap.port, { GODOT_DAP_CONNECT: 'lazy' });
+
+    await readConsole(client);
+
+    assert.strictEqual(dap.acceptedCount(), 1);
+    await dap.waitForOpenCount((count) => count === 1);
+  });
+
+  it('does not reconnect in the background after the connection drops', async () => {
+    dap = await startFakeDAPServer();
+    client = await startMCPServer(dap.port, { GODOT_DAP_CONNECT: 'lazy' });
+    await readConsole(client);
+    await dap.waitForOpenCount((count) => count === 1);
+
+    dap.dropConnections();
+    await dap.waitForOpenCount((count) => count === 0);
+    await settle(RETRY_WINDOW_MS);
+
+    assert.strictEqual(dap.acceptedCount(), 1);
+  });
+});

@@ -19,13 +19,17 @@ export async function closedPort(): Promise<number> {
  * Start the real MCP server as a child process, the way an MCP host does.
  * The LSP port points at a closed port so no running Godot is picked up.
  */
-export async function startMCPServer(dapPort: number): Promise<Client> {
+export async function startMCPServer(
+  dapPort: number,
+  extraEnv: Record<string, string> = {}
+): Promise<Client> {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (value !== undefined) env[key] = value;
   }
   env.GODOT_DAP_PORT = String(dapPort);
   env.GODOT_LSP_PORT = String(await closedPort());
+  Object.assign(env, extraEnv);
 
   const client = new Client({ name: 'minimal-godot-mcp-test', version: '0.0.0' });
   await client.connect(

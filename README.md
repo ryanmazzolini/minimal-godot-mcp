@@ -85,6 +85,7 @@ All optional — defaults work for most setups.
 | `GODOT_WORKSPACE_PATH` | Godot project path | Auto-detected from cwd |
 | `GODOT_DAP_PORT` | Override DAP port | Tries 6006, 6010 |
 | `GODOT_DAP_BUFFER_SIZE` | Max console entries to buffer | `1000` |
+| `GODOT_DAP_CONNECT` | `lazy` connects to DAP on the first `get_console_output` call instead of at startup. Frees one of Godot's 8 debug adapter slots per idle server, but output from before that call is lost | `eager` |
 
 Pass these as `env` in your MCP client config:
 
@@ -198,7 +199,7 @@ flowchart LR
 ```
 
 - **[LSP](https://microsoft.github.io/language-server-protocol/)** (Language Server Protocol, solid line): Always connected for diagnostics
-- **[DAP](https://microsoft.github.io/debug-adapter-protocol/specification)** (Debug Adapter Protocol, dotted line): Connects at startup and retries every 5 seconds while Godot is not reachable
+- **[DAP](https://microsoft.github.io/debug-adapter-protocol/specification)** (Debug Adapter Protocol, dotted line): Connects at startup and retries every 5 seconds while Godot is not reachable (set `GODOT_DAP_CONNECT=lazy` to connect on the first `get_console_output` call instead)
 
 See also:
 
