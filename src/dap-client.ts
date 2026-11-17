@@ -93,18 +93,25 @@ export class DAPClient extends EventEmitter {
         this.handleData(data);
       });
 
-      socket.once('error', fail);
+      let established = false;
+
+      // After the handshake, an error is a lost connection: Node emits 'close'
+      // next, and that handler reports it. Releasing here would hide it.
+      socket.on('error', (err) => {
+        if (!established) fail(err);
+      });
 
       socket.on('close', () => {
         if (this.socket === socket) {
+          this.releaseSocket('DAP connection lost');
           this.emit('close');
-          this.socket = null;
         }
       });
 
       socket.connect(port, this.host, async () => {
         try {
           await this.initialize();
+          established = true;
           resolve();
         } catch (err) {
           fail(err);
@@ -121,7 +128,7 @@ export class DAPClient extends EventEmitter {
   private releaseSocket(reason = 'DAP connection replaced'): void {
     const socket = this.socket;
     this.socket = null;
-    this.buffer = '';
+    this.buffer = Buffer.alloc(0);
     socket?.destroy();
     // Pending requests were sent on the released socket and can never be answered
     for (const [, pending] of this.pendingRequests) {
