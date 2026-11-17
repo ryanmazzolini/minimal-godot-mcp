@@ -106,6 +106,30 @@ describe('DAP socket lifecycle', () => {
     server = await startFakeDAPServer();
   });
 
+  it('emits close when the connection is reset after the handshake', async () => {
+    await client.connect(server.port);
+    await server.waitForOpenCount((count) => count === 1);
+    const closed = new Promise<void>((resolve) => client.once('close', resolve));
+
+    server.resetAll();
+    await closed;
+
+    assert.strictEqual(client.isConnected(), false);
+  });
+
+  it('can reconnect after the connection is reset', async () => {
+    await client.connect(server.port);
+    await server.waitForOpenCount((count) => count === 1);
+    const closed = new Promise<void>((resolve) => client.once('close', resolve));
+    server.resetAll();
+    await closed;
+
+    await client.connect(server.port);
+
+    assert.strictEqual(client.isConnected(), true);
+    await server.waitForOpenCount((count) => count === 1);
+  });
+
   it('closes the socket when disconnect() is called', async () => {
     await client.connect(server.port);
     await server.waitForOpenCount((count) => count === 1);

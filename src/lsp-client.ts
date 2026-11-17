@@ -10,11 +10,14 @@ import { toFileUri, fromFileUri, workspaceName } from './uri-utils.js';
 export class LSPClient extends EventEmitter {
   private socket: Socket | null = null;
   private cache = new DiagnosticCache();
-  private buffer = '';
+  private buffer: Buffer = Buffer.alloc(0);
   private readonly host: string;
   private workspacePath: string | null = null;
   private readonly debug: boolean;
   private isShuttingDown = false;
+  private isReady = false;
+  private connecting: Promise<void> | null = null;
+  private finishInitialize: ((error?: Error) => void) | null = null;
   private readonly MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
 
   constructor(host = '127.0.0.1', debug = false) {
@@ -30,65 +33,106 @@ export class LSPClient extends EventEmitter {
   }
 
   /**
-   * Get Godot LSP ports to try (env var, then defaults)
+   * Use Godot's LSP port, or an explicitly configured custom port.
    */
-  private getPortsToTry(): number[] {
+  private getPort(): number {
     const envPort = process.env.GODOT_LSP_PORT;
     if (envPort) {
       const port = parseInt(envPort, 10);
       if (isNaN(port) || port < 1 || port > 65535) {
         throw new Error(`Invalid GODOT_LSP_PORT: ${envPort} (must be 1-65535)`);
       }
-      return [port];
+      return port;
     }
-    return [6007, 6005, 6008]; // Try 6007 first (Godot 4.x), then others
+    return 6005;
   }
 
   /**
-   * Connect to Godot LSP server (tries multiple ports)
+   * Resolve only after Godot accepts initialization and initialized is sent.
+   * Concurrent callers share one connection attempt.
    */
   async connect(): Promise<void> {
-    const ports = this.getPortsToTry();
-
-    for (const port of ports) {
-      try {
-        await this.tryConnect(port);
-        console.error(`Connected to Godot LSP on port ${port}`);
-        return;
-      } catch {
-        // Try next port
-      }
+    if (this.isShuttingDown) {
+      throw new Error('LSP client has been shut down');
     }
+    if (this.isReady && this.socket !== null && !this.socket.destroyed) return;
+    if (this.connecting !== null) return this.connecting;
 
-    throw new Error(`Could not connect to Godot LSP on any port: ${ports.join(', ')}`);
+    const port = this.getPort();
+    this.connecting = this.tryConnect(port);
+    try {
+      await this.connecting;
+      console.error(`Connected to Godot LSP on port ${port}`);
+    } finally {
+      this.connecting = null;
+    }
   }
 
-  /**
-   * Try connecting to a specific port
-   */
   private async tryConnect(port: number): Promise<void> {
+    this.socket?.destroy();
+    this.isReady = false;
+    this.buffer = Buffer.alloc(0);
+
     return new Promise((resolve, reject) => {
       const socket = new Socket();
       this.socket = socket;
+      let settled = false;
+
+      const finish = (error?: Error): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        this.finishInitialize = null;
+        if (error !== undefined) {
+          this.socket = null;
+          this.buffer = Buffer.alloc(0);
+          socket.destroy();
+          reject(error);
+        } else {
+          this.isReady = true;
+          resolve();
+        }
+      };
+
+      // Bound the entire attempt, including a TCP peer that never speaks LSP.
+      const timer = setTimeout(() => {
+        finish(new Error(`Godot LSP connection/initialization timed out on port ${port}`));
+      }, 5000);
+      this.finishInitialize = finish;
 
       socket.on('data', (data: Buffer) => {
+        if (this.socket !== socket) return;
         this.log('Received', data.length, 'bytes');
         this.handleData(data);
       });
 
-      socket.once('error', reject);
+      socket.on('error', (error) => {
+        if (!settled) {
+          finish(error);
+        } else {
+          // Keep the socket current until close so established failures notify callers.
+          socket.destroy();
+        }
+      });
 
       socket.on('close', () => {
-        // Only clear this.socket if THIS socket is closing (not a previous attempt)
+        if (!settled) {
+          finish(new Error('Godot LSP connection closed during initialization'));
+        }
         if (this.socket === socket) {
-          this.emit('close');
           this.socket = null;
+          this.isReady = false;
+          this.buffer = Buffer.alloc(0);
+          this.emit('close');
         }
       });
 
       socket.connect(port, this.host, () => {
-        this.sendInitialize();
-        resolve();
+        try {
+          this.sendInitialize();
+        } catch (error) {
+          finish(error instanceof Error ? error : new Error(String(error)));
+        }
       });
     });
   }
@@ -98,10 +142,13 @@ export class LSPClient extends EventEmitter {
    */
   disconnect(): void {
     this.isShuttingDown = true;
+    this.finishInitialize?.(new Error('LSP client disconnected during initialization'));
     if (this.socket) {
       this.socket.destroy();
       this.socket = null;
     }
+    this.isReady = false;
+    this.buffer = Buffer.alloc(0);
     this.cache.clearAll();
   }
 
@@ -222,7 +269,7 @@ export class LSPClient extends EventEmitter {
     }
 
     const content = JSON.stringify(message);
-    const header = `Content-Length: ${content.length}\r\n\r\n`;
+    const header = `Content-Length: ${Buffer.byteLength(content)}\r\n\r\n`;
     this.socket.write(header + content);
   }
 
@@ -237,13 +284,14 @@ export class LSPClient extends EventEmitter {
       return;
     }
 
-    this.buffer += data.toString();
+    // Keep byte offsets intact; a UTF-8 character may span multiple chunks.
+    this.buffer = Buffer.concat([this.buffer, data]);
 
     while (true) {
       const headerEnd = this.buffer.indexOf('\r\n\r\n');
       if (headerEnd === -1) break;
 
-      const header = this.buffer.slice(0, headerEnd);
+      const header = this.buffer.subarray(0, headerEnd).toString('ascii');
       const contentLengthMatch = header.match(/Content-Length: (\d+)/);
 
       if (!contentLengthMatch) break;
@@ -254,8 +302,10 @@ export class LSPClient extends EventEmitter {
 
       if (this.buffer.length < messageEnd) break;
 
-      const messageContent = this.buffer.slice(messageStart, messageEnd);
-      this.buffer = this.buffer.slice(messageEnd);
+      const messageContent = this.buffer.subarray(messageStart, messageEnd).toString('utf8');
+      this.buffer = messageEnd === this.buffer.length
+        ? Buffer.alloc(0)
+        : this.buffer.subarray(messageEnd);
 
       try {
         this.handleMessage(JSON.parse(messageContent));
@@ -268,17 +318,28 @@ export class LSPClient extends EventEmitter {
   /**
    * Handle parsed LSP message
    */
-  private handleMessage(message: { id?: number; method?: string; params?: unknown; result?: unknown }): void {
+  private handleMessage(message: { id?: number; method?: string; params?: unknown; result?: unknown; error?: unknown }): void {
     this.log('Message:', message.method || `response(id=${message.id})`);
 
-    // Handle initialize response - must send initialized notification
-    if (message.id === 1 && message.result) {
-      this.log('Sending initialized notification');
-      this.sendMessage({
-        jsonrpc: '2.0',
-        method: 'initialized',
-        params: {},
-      });
+    if (message.id === 1 && this.finishInitialize !== null) {
+      const result = message.result;
+      if (message.error !== undefined) {
+        this.finishInitialize(new Error('Godot LSP rejected initialization'));
+      } else if (
+        result === null || typeof result !== 'object' || !('capabilities' in result) ||
+        result.capabilities === null || typeof result.capabilities !== 'object' ||
+        Array.isArray(result.capabilities)
+      ) {
+        this.finishInitialize(new Error('Godot LSP returned an invalid initialize result'));
+      } else {
+        this.log('Sending initialized notification');
+        this.sendMessage({
+          jsonrpc: '2.0',
+          method: 'initialized',
+          params: {},
+        });
+        this.finishInitialize();
+      }
     }
 
     if (message.method === 'textDocument/publishDiagnostics') {

@@ -38,7 +38,7 @@ Add to `~/.claude.json`:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"]
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp@latest"]
     }
   }
 }
@@ -56,7 +56,7 @@ Add to `.cursor/mcp.json` in your project:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"]
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp@latest"]
     }
   }
 }
@@ -69,7 +69,7 @@ Add to `.cursor/mcp.json` in your project:
 
 Configure your client to run:
 ```bash
-npx -y @ryanmazzolini/minimal-godot-mcp
+npx -y @ryanmazzolini/minimal-godot-mcp@latest
 ```
 
 </details>
@@ -81,7 +81,7 @@ All optional — defaults work for most setups.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GODOT_LSP_PORT` | Override LSP port | Tries 6007, 6005, 6008 |
+| `GODOT_LSP_PORT` | Override LSP port | 6005 |
 | `GODOT_WORKSPACE_PATH` | Godot project path | Auto-detected from cwd |
 | `GODOT_DAP_PORT` | Override DAP port | Tries 6006, 6010 |
 | `GODOT_DAP_BUFFER_SIZE` | Max console entries to buffer | `1000` |
@@ -93,7 +93,7 @@ Pass these as `env` in your MCP client config:
   "mcpServers": {
     "godot": {
       "command": "npx",
-      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp"],
+      "args": ["-y", "@ryanmazzolini/minimal-godot-mcp@latest"],
       "env": {
         "GODOT_WORKSPACE_PATH": "/path/to/your/godot/project"
       }
@@ -193,7 +193,7 @@ Clear the console output buffer.
 ```mermaid
 flowchart LR
     MCP[MCP Client] <-->|stdio| Server[minimal-godot-mcp]
-    Server <-->|LSP :6007| Godot[Godot Editor]
+    Server <-->|LSP :6005| Godot[Godot Editor]
     Server <-.->|DAP :6006| Godot
 ```
 

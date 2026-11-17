@@ -4,6 +4,10 @@ updates:
     directory: '/'
     schedule:
       interval: 'monthly'
+    ignore:
+      # typescript-eslint pins a TypeScript peer range; lift once it supports the next major
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
       npm-version-updates:
         applies-to: 'version-updates'

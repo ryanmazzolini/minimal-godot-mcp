@@ -12,6 +12,8 @@ export interface FakeDAPServer {
   requests: { command: string; arguments?: unknown }[];
   /** Resolves once openCount() satisfies the predicate, rejects after timeoutMs */
   waitForOpenCount(predicate: (count: number) => boolean, timeoutMs?: number): Promise<void>;
+  /** Abort every open connection with a TCP RST, as a crashing Godot would */
+  resetAll(): void;
   /** Close every open connection but keep listening, like a restarted debug adapter */
   dropConnections(): void;
   close(): Promise<void>;
@@ -119,6 +121,11 @@ export async function startFakeDAPServer(
           throw new Error(`open connection count stayed at ${sockets.size}`);
         }
         await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    },
+    resetAll: () => {
+      for (const socket of sockets) {
+        socket.resetAndDestroy();
       }
     },
     dropConnections: () => {
