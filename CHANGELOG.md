@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.9](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.8...minimal-godot-mcp-v0.1.9) (2026-11-17)
+
+
+### Features
+
+* **dap:** connect at startup and capture runtime exceptions ([#80](https://github.com/ryanmazzolini/minimal-godot-mcp/issues/80)) ([799755b](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/799755b1fe4dea7d447f15c2783878306f4b301b))
+
+
+### Bug Fixes
+
+* **dap:** keep one socket across debug sessions ([#79](https://github.com/ryanmazzolini/minimal-godot-mcp/issues/79)) ([236553c](https://github.com/ryanmazzolini/minimal-godot-mcp/commit/236553c5f2286e2c864c949d8737f0aa6b2a9f9f))
+
 ## [0.1.8](https://github.com/ryanmazzolini/minimal-godot-mcp/compare/minimal-godot-mcp-v0.1.7...minimal-godot-mcp-v0.1.8) (2026-11-12)
 
 
