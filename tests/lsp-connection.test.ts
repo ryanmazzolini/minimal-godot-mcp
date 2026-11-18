@@ -173,6 +173,23 @@ describe('LSP connection readiness', { timeout: 15000 }, () => {
     assert.equal(sockets.length, 2);
   });
 
+  it('release() frees the socket without emitting close, and allows a new connection', async (t) => {
+    const { client, events, sockets } = await fixture(t);
+    events.on('initialize', accept);
+    await client.connect();
+    let closeEvents = 0;
+    client.on('close', () => closeEvents++);
+    const serverSideClosed = once(sockets[0], 'close');
+
+    client.release();
+    await serverSideClosed;
+
+    assert.equal(closeEvents, 0);
+    assert.equal(client.shouldReconnect(), true);
+    await client.connect();
+    assert.equal(sockets.length, 2);
+  });
+
   it('cancels initialization on shutdown and refuses subsequent connections', async (t) => {
     const { client, events } = await fixture(t);
     const request = once(events, 'initialize');
@@ -185,12 +202,12 @@ describe('LSP connection readiness', { timeout: 15000 }, () => {
   });
 });
 
-async function mcpClient(t: TestContext, port: number) {
+async function mcpClient(t: TestContext, port: number, extraEnv: Record<string, string> = {}) {
   const workspace = await mkdtemp(join(tmpdir(), 'godot-lsp-readiness-'));
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: ['--import', 'tsx', 'src/index.ts'],
-    env: { GODOT_LSP_PORT: String(port), GODOT_WORKSPACE_PATH: workspace },
+    env: { GODOT_LSP_PORT: String(port), GODOT_WORKSPACE_PATH: workspace, ...extraEnv },
     stderr: 'pipe',
   });
   const logs = new EventEmitter();
@@ -218,39 +235,70 @@ async function mcpClient(t: TestContext, port: number) {
   return { client, scan, logContaining, getStderr: () => stderr };
 }
 
-describe('MCP startup and LSP recovery', { timeout: 20000 }, () => {
-  it('serves MCP while initialize is pending, and gates diagnostics until ready', async (t) => {
-    const { events, port } = await fixture(t);
-    const request = once(events, 'initialize');
+describe('MCP on-demand LSP connection', { timeout: 20000 }, () => {
+  it('does not connect at startup, and connects on the first diagnostics call', async (t) => {
+    const { events, sockets, port } = await fixture(t);
+    events.on('initialize', accept);
     const { client, scan } = await mcpClient(t, port);
-    const [socket] = await request as [Socket];
     const tools = await client.listTools();
     assert.equal(tools.tools.length, 4);
-    assert.equal(typeof (await scan()).error, 'string');
-    const notification = initialized(events);
-    accept(socket);
-    await notification;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    assert.equal(sockets.length, 0);
+
     assert.equal((await scan()).error, undefined);
+    assert.equal(sockets.length, 1);
   });
 
-  it('recovers from initial refusal and an established reset without duplicate connections', async (t) => {
+  it('reports Godot unavailable, then connects once it is reachable', async (t) => {
     const { server, events, sockets, port } = await fixture(t);
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
     events.on('initialize', accept);
-    const { scan, logContaining, getStderr } = await mcpClient(t, port);
-    await logContaining('Godot LSP unavailable:');
-    assert.match(getStderr(), /Godot LSP unavailable: [^\n]+Retrying every 5 seconds\./);
+    const { scan, getStderr } = await mcpClient(t, port);
     assert.equal(typeof (await scan()).error, 'string');
-    const first = initialized(events);
+    assert.match(getStderr(), /Godot LSP unavailable: [^\n]+Will retry on the next diagnostics call\./);
+
     await new Promise<void>((resolve) => server.listen(port, '127.0.0.1', resolve));
-    await first;
     assert.equal((await scan()).error, undefined);
-    const second = initialized(events);
+    assert.equal(sockets.length, 1);
+  });
+
+  it('reconnects on the next call after an established reset', async (t) => {
+    const { events, sockets, port } = await fixture(t);
+    events.on('initialize', accept);
+    const { scan, logContaining } = await mcpClient(t, port);
+    assert.equal((await scan()).error, undefined);
+
     sockets[0].resetAndDestroy();
     await logContaining('LSP connection closed.');
-    assert.equal(typeof (await scan()).error, 'string');
-    await second;
+
     assert.equal((await scan()).error, undefined);
     assert.equal(sockets.length, 2);
+  });
+
+  it('releases the connection after the idle timeout and reconnects on demand', async (t) => {
+    const { events, sockets, port } = await fixture(t);
+    events.on('initialize', accept);
+    const { scan, logContaining } = await mcpClient(t, port, { GODOT_LSP_IDLE_TIMEOUT: '0.2' });
+    assert.equal((await scan()).error, undefined);
+    const released = once(sockets[0], 'close', { signal: AbortSignal.timeout(5000) });
+
+    await logContaining('Released idle Godot LSP connection.');
+    await released;
+
+    assert.equal((await scan()).error, undefined);
+    assert.equal(sockets.length, 2);
+  });
+
+  it('keeps the connection open with GODOT_LSP_IDLE_TIMEOUT=0', async (t) => {
+    const { events, sockets, port } = await fixture(t);
+    events.on('initialize', accept);
+    const { scan } = await mcpClient(t, port, { GODOT_LSP_IDLE_TIMEOUT: '0' });
+    assert.equal((await scan()).error, undefined);
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    assert.equal((await scan()).error, undefined);
+    assert.equal(sockets.length, 1);
+    assert.equal(sockets[0].destroyed, false);
   });
 });

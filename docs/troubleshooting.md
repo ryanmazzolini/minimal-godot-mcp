@@ -17,14 +17,21 @@
 3. Check the port: `nc -zv localhost 6005`. This checks TCP reachability, not whether LSP initialization succeeds. Port 6007 is Godot's remote debugger, not LSP.
 4. If using a different port, set `GODOT_LSP_PORT` environment variable
 
-The MCP server stays available while connecting. Diagnostics become available only after Godot accepts LSP initialization. Each connection/initialization attempt has a five-second timeout; failed attempts retry after five seconds.
+The server connects to the LSP on the first diagnostics call, not at startup. Each connection/initialization attempt has a five-second timeout. If it fails, the call returns an error and the next diagnostics call tries again.
 
 ### Connection drops intermittently
 
-The server automatically reconnects when Godot restarts. If issues persist:
+The server reconnects on the next diagnostics call after Godot restarts. It also releases the connection after `GODOT_LSP_IDLE_TIMEOUT` seconds (default 300) without a diagnostics call, and reconnects on demand. If issues persist:
 
 1. Check Godot isn't crashing (view Godot console)
 2. Ensure only one LSP client connects at a time
+
+### "Max client limits reached" in the Godot editor
+
+Godot accepts at most 8 clients each on the LSP and on the debug adapter. Hosts that start one MCP server per session can run out of slots.
+
+- **LSP:** a server holds a slot only from its first diagnostics call until `GODOT_LSP_IDLE_TIMEOUT` seconds (default 300) pass without one. Lower the timeout if many sessions run diagnostics at once.
+- **DAP:** by default, every server holds a slot from startup so console output is never missed. Set `GODOT_DAP_CONNECT=lazy` to connect on the first `get_console_output` call instead. Output from before that call is lost.
 
 ## Diagnostic Issues
 

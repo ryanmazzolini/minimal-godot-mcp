@@ -153,6 +153,20 @@ export class LSPClient extends EventEmitter {
   }
 
   /**
+   * Close an idle connection to free one of Godot's 8 LSP client slots.
+   * Unlike disconnect(), a later connect() opens a new connection. Emits no
+   * 'close': the connection is given up on purpose, not lost.
+   */
+  release(): void {
+    if (this.connecting !== null) return;
+    const socket = this.socket;
+    this.socket = null;
+    this.isReady = false;
+    this.buffer = Buffer.alloc(0);
+    socket?.destroy();
+  }
+
+  /**
    * Check if reconnection is allowed
    */
   shouldReconnect(): boolean {

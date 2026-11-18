@@ -7,6 +7,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { LSPClient } from './lsp-client.js';
+import { LSPSession, getLSPIdleTimeoutMs } from './lsp-session.js';
 import { DiagnosticsManager } from './diagnostics-manager.js';
 import {
   getDiagnostics,
@@ -52,12 +53,9 @@ function getDAPConnectMode(): DAPConnectMode {
  * Main MCP server
  */
 async function main(): Promise<void> {
-  // Initialize LSP client (don't connect yet)
   const lspClient = new LSPClient();
   const diagnosticsManager = new DiagnosticsManager(lspClient);
-  let isConnected = false;
-  let lspFailureReported = false;
-  let reconnectTimer: NodeJS.Timeout | null = null;
+  const lspSession = new LSPSession(lspClient, getLSPIdleTimeoutMs());
 
   // DAP client for console output
   const dapClient = new DAPClient();
@@ -154,7 +152,9 @@ async function main(): Promise<void> {
 
     if (name === 'get_diagnostics') {
       const input = args as unknown as GetDiagnosticsInput;
-      const result = await getDiagnostics(diagnosticsManager, isConnected, input);
+      const result = await lspSession.run((connected) =>
+        getDiagnostics(diagnosticsManager, connected, input)
+      );
 
       return {
         content: [
@@ -167,7 +167,9 @@ async function main(): Promise<void> {
     }
 
     if (name === 'scan_workspace_diagnostics') {
-      const result = await scanWorkspaceDiagnostics(diagnosticsManager, isConnected);
+      const result = await lspSession.run((connected) =>
+        scanWorkspaceDiagnostics(diagnosticsManager, connected)
+      );
 
       return {
         content: [
@@ -217,36 +219,8 @@ async function main(): Promise<void> {
     console.error('MCP Server error:', error);
   };
 
-  const scheduleLSPReconnect = (): void => {
-    if (!lspClient.shouldReconnect() || reconnectTimer !== null) return;
-    reconnectTimer = setTimeout(() => {
-      reconnectTimer = null;
-      void connectLSP();
-    }, 5000);
-  };
-
-  const connectLSP = async (): Promise<void> => {
-    if (!lspClient.shouldReconnect()) return;
-    try {
-      await lspClient.connect();
-      if (lspClient.shouldReconnect()) {
-        isConnected = true;
-        lspFailureReported = false;
-      }
-    } catch (error) {
-      if (!lspFailureReported && lspClient.shouldReconnect()) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`Godot LSP unavailable: ${message}. Retrying every 5 seconds.`);
-        lspFailureReported = true;
-      }
-      scheduleLSPReconnect();
-    }
-  };
-
   lspClient.on('close', () => {
-    console.error('LSP connection closed.');
-    isConnected = false;
-    scheduleLSPReconnect();
+    console.error('LSP connection closed. Will reconnect on the next diagnostics call.');
   });
 
   // Handle DAP events
@@ -281,11 +255,7 @@ async function main(): Promise<void> {
 
     console.error(`Shutting down (${signal})...`);
 
-    // Stop LSP reconnection loop
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
+    lspSession.dispose();
 
     // Stop DAP reconnection loop
     if (dapRetryTimer) {
@@ -310,9 +280,6 @@ async function main(): Promise<void> {
   // Detect stdio close (Claude disconnect)
   process.stdin.on('close', () => cleanup('stdin-close'));
   process.stdout.on('close', () => cleanup('stdout-close'));
-
-  // MCP stays available while Godot connects, initializes or waits for a retry.
-  void connectLSP();
 }
 
 main().catch((error) => {
