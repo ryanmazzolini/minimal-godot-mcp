@@ -82,6 +82,7 @@ All optional — defaults work for most setups.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `GODOT_LSP_PORT` | Override LSP port | 6005 |
+| `GODOT_LSP_IDLE_TIMEOUT` | Seconds without a diagnostics call before the LSP connection is released, freeing one of Godot's 8 LSP client slots. `0` keeps it open | `300` |
 | `GODOT_WORKSPACE_PATH` | Godot project path | Auto-detected from cwd |
 | `GODOT_DAP_PORT` | Override DAP port | Tries 6006, 6010 |
 | `GODOT_DAP_BUFFER_SIZE` | Max console entries to buffer | `1000` |
@@ -198,7 +199,7 @@ flowchart LR
     Server <-.->|DAP :6006| Godot
 ```
 
-- **[LSP](https://microsoft.github.io/language-server-protocol/)** (Language Server Protocol, solid line): Always connected for diagnostics
+- **[LSP](https://microsoft.github.io/language-server-protocol/)** (Language Server Protocol, solid line): Connects on the first diagnostics call and is released after `GODOT_LSP_IDLE_TIMEOUT` seconds without one, so idle servers don't hold one of Godot's 8 LSP client slots
 - **[DAP](https://microsoft.github.io/debug-adapter-protocol/specification)** (Debug Adapter Protocol, dotted line): Connects at startup and retries every 5 seconds while Godot is not reachable (set `GODOT_DAP_CONNECT=lazy` to connect on the first `get_console_output` call instead)
 
 See also:
